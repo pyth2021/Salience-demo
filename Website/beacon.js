@@ -1,5 +1,5 @@
-const WORKER_URL = "http://127.0.0.1:5000/predict";
-// Later we will replace this with your Cloudflare Worker URL.
+const WORKER_URL = "https://salience-beacon-worker.mahin0710.workers.dev";
+// This sends beacon data to the Cloudflare Worker.
 
 async function sendBeaconEvent(telemetry) {
     const response = await fetch(WORKER_URL, {
