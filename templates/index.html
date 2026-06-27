@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Salience Bot Detection Demo</title>
+</head>
+<body>
+    <h1>Salience Privacy-Preserving Bot Detection Demo</h1>
+
+    <p>
+        This demo sends safe website telemetry to the Flask backend.
+        The backend calculates a risk score and predicts whether the traffic is human, suspicious, or bot-like.
+    </p>
+
+    <h2>Test Traffic Type</h2>
+
+    <button onclick="sendHumanTelemetry()">Send Human-Like Activity</button>
+    <button onclick="sendGoodBotTelemetry()">Send Good Bot Activity</button>
+    <button onclick="sendBadBotTelemetry()">Send Bad Bot Activity</button>
+    <button onclick="sendScannerTelemetry()">Send Scanner-Like Activity</button>
+
+    <h2>Prediction Result</h2>
+    <pre id="result">No prediction yet.</pre>
+
+    <script>
+        async function sendTelemetry(data) {
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            document.getElementById("result").innerText =
+                JSON.stringify(result, null, 2);
+        }
+
+        function sendHumanTelemetry() {
+            const telemetry = {
+                page_path: "/",
+                interaction_type: "normal_browsing",
+                scroll_depth_category: "medium",
+                request_interval_seconds: 6,
+                user_agent_category: "normal_browser",
+                has_favicon_request: 1,
+                requested_robots_txt: 0,
+                pages_per_session: 4,
+                error_rate: 0.0,
+
+                tls_version: "TLS1.3",
+                cipher_suite_count: 15,
+                extension_count: 12,
+                alpn: "h2",
+                sni_present: 1
+            };
+
+            sendTelemetry(telemetry);
+        }
+
+        function sendGoodBotTelemetry() {
+            const telemetry = {
+                page_path: "/robots.txt",
+                interaction_type: "crawler_request",
+                scroll_depth_category: "none",
+                request_interval_seconds: 2,
+                user_agent_category: "good_bot",
+                has_favicon_request: 0,
+                requested_robots_txt: 1,
+                pages_per_session: 15,
+                error_rate: 0.01,
+
+                tls_version: "TLS1.3",
+                cipher_suite_count: 12,
+                extension_count: 10,
+                alpn: "h2",
+                sni_present: 1
+            };
+
+            sendTelemetry(telemetry);
+        }
+
+        function sendBadBotTelemetry() {
+            const telemetry = {
+                page_path: "/products.html",
+                interaction_type: "rapid_request",
+                scroll_depth_category: "none",
+                request_interval_seconds: 0.2,
+                user_agent_category: "bot",
+                has_favicon_request: 0,
+                requested_robots_txt: 0,
+                pages_per_session: 100,
+                error_rate: 0.20,
+
+                tls_version: "TLS1.2",
+                cipher_suite_count: 5,
+                extension_count: 4,
+                alpn: "http/1.1",
+                sni_present: 1
+            };
+
+            sendTelemetry(telemetry);
+        }
+
+        function sendScannerTelemetry() {
+            const telemetry = {
+                page_path: "/admin",
+                interaction_type: "scanner_request",
+                scroll_depth_category: "none",
+                request_interval_seconds: 0.1,
+                user_agent_category: "curl",
+                has_favicon_request: 0,
+                requested_robots_txt: 0,
+                pages_per_session: 150,
+                error_rate: 0.60,
+
+                tls_version: "TLS1.2",
+                cipher_suite_count: 4,
+                extension_count: 3,
+                alpn: "http/1.1",
+                sni_present: 0
+            };
+
+            sendTelemetry(telemetry);
+        }
+    </script>
+</body>
+</html>

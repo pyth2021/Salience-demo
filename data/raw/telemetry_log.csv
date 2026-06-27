@@ -1,0 +1,5 @@
+timestamp,page_path,interaction_type,scroll_depth_category,request_interval_seconds,user_agent_category,has_favicon_request,requested_robots_txt,pages_per_session,error_rate,tls_version,cipher_suite_count,extension_count,alpn,sni_present,ml_prediction,confidence,risk_level,action
+2026-06-26T23:57:00.186265,/,normal_browsing,medium,6.0,normal_browser,1,0,4,0.0,TLS1.3,15,12,h2,1,human,1.0,low,allow
+2026-06-26T23:57:00.988300,/robots.txt,crawler_request,none,2.0,good_bot,0,1,15,0.01,TLS1.3,12,10,h2,1,good_bot,1.0,low,allow_with_monitoring
+2026-06-26T23:57:01.820048,/products.html,rapid_request,none,0.2,bot,0,0,100,0.2,TLS1.2,5,4,http/1.1,1,bad_bot,1.0,high,flag_or_block
+2026-06-26T23:57:02.721842,/admin,scanner_request,none,0.1,curl,0,0,150,0.6,TLS1.2,4,3,http/1.1,0,scanner,0.98,high,flag_or_block
