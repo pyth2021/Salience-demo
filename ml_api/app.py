@@ -1,11 +1,10 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 import pickle
 import pandas as pd
 import os
 
 app = Flask(__name__)
-CORS(app)
+
 
 MODEL_PATH = os.path.join("models", "bot_detection_model.pkl")
 
