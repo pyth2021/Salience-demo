@@ -4,7 +4,7 @@ A Cybersecurity and Artificial Intelligence capstone implementation for **Salien
 
 ## Project Identity
 
-- **Institution:** Humber Polytechnic
+- **Institution:** Humber Polytechnic, Ontario, Canada
 - **Faculty:** Faculty of Applied Sciences & Technology
 - **Program:** Cybersecurity and Artificial Intelligence
 - **Project Sponsor:** Salience Enterprises Inc.
