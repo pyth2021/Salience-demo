@@ -22,7 +22,7 @@ A Cybersecurity and Artificial Intelligence capstone implementation for **Salien
 
 - **Website:** https://salience-demo.pages.dev
 - **Worker Events API:** https://salience-beacon-worker.mahin0710.workers.dev/events
-- **Dashboard:** https://salience-demo-jtz9t5jqcu5c2scubyrt7r.streamlit.app/
+- **Dashboard:** https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app
 - **Repository:** https://github.com/pyth2021/Salience-demo
 
 ## Website Pages
