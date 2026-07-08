@@ -112,6 +112,7 @@ h1 {
     line-height: 1.05;
     margin: 0 0 18px;
     max-width: 1080px;
+    color: var(--navy);
 }
 
 h2 {
@@ -161,17 +162,26 @@ h3 {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-size: 0.82rem;
-    color: #b9d9ff;
+    color: var(--blue);
     font-weight: 700;
     margin-bottom: 14px;
+}
+
+.hero .eyebrow {
+    color: #b9d9ff;
 }
 
 .hero-text,
 .hero-subtitle {
     font-size: clamp(1rem, 2vw, 1.25rem);
     max-width: 850px;
-    color: #e2eefc;
+    color: var(--muted);
     margin: 0 0 26px;
+}
+
+.hero .hero-text,
+.hero .hero-subtitle {
+    color: #e2eefc;
 }
 
 .hero-card {
@@ -407,6 +417,34 @@ tr:nth-child(even) td {
 .small {
     color: var(--muted);
     font-size: 0.9rem;
+}
+
+/* Live Stats page hero readability fix */
+.live-hero,
+.stats-hero {
+    background: linear-gradient(135deg, var(--navy), #0d4f8b);
+    color: #ffffff;
+    border: 0;
+    border-radius: 0;
+    margin: -34px -6vw 24px;
+    padding: 54px 6vw 42px;
+}
+
+.live-hero h1,
+.stats-hero h1 {
+    color: #ffffff;
+}
+
+.live-hero .eyebrow,
+.stats-hero .eyebrow {
+    color: #b9d9ff;
+}
+
+.live-hero .hero-text,
+.live-hero .hero-subtitle,
+.stats-hero .hero-text,
+.stats-hero .hero-subtitle {
+    color: #e2eefc;
 }
 
 /* Footer */
