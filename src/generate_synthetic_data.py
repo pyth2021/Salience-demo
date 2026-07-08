@@ -115,19 +115,21 @@ def generate_scanner(index):
         "label": "scanner"
     }
 
-
 rows = []
 
-for i in range(250):
+# 50,000 total synthetic telemetry events
+# Balanced classes: 12,500 rows per traffic type
+
+for i in range(12500):
     rows.append(generate_human(i))
 
-for i in range(250, 400):
+for i in range(12500, 25000):
     rows.append(generate_good_bot(i))
 
-for i in range(400, 700):
+for i in range(25000, 37500):
     rows.append(generate_bad_bot(i))
 
-for i in range(700, 1000):
+for i in range(37500, 50000):
     rows.append(generate_scanner(i))
 
 random.shuffle(rows)

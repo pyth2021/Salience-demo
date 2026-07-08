@@ -1,0 +1,68 @@
+{
+  "dataset": "Synthetic telemetry dataset",
+  "test_records": 10000,
+  "model_family": "Rule-based baseline + Isolation Forest + Gradient Boosting",
+  "accuracy": 0.995,
+  "weighted_precision": 0.995,
+  "weighted_recall": 0.995,
+  "weighted_f1": 0.994,
+  "false_positive_rate": 0.0,
+  "class_metrics": [
+    {
+      "class": "bad_bot",
+      "precision": 0.98,
+      "recall": 0.999,
+      "f1_score": 0.989
+    },
+    {
+      "class": "good_bot",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "class": "human",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1_score": 1.0
+    },
+    {
+      "class": "scanner",
+      "precision": 0.999,
+      "recall": 0.979,
+      "f1_score": 0.989
+    }
+  ],
+  "confusion_matrix_labels": [
+    "bad_bot",
+    "good_bot",
+    "human",
+    "scanner"
+  ],
+  "confusion_matrix": [
+    [
+      2497,
+      0,
+      0,
+      3
+    ],
+    [
+      0,
+      2500,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      2500,
+      0
+    ],
+    [
+      52,
+      0,
+      0,
+      2448
+    ]
+  ]
+}

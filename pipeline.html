@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pipeline Architecture | Salience Bot Detection</title>
+    <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+    <header>
+        <div class="eyebrow">Live Architecture</div>
+        <h1>Telemetry Detection Pipeline</h1>
+        <p class="hero-subtitle">The implemented flow connects the Cloudflare Pages website, beacon.js, Cloudflare Worker, Azure /predict ML API, Cloudflare D1, and Streamlit Dashboard.</p>
+    </header>
+    <nav aria-label="Site navigation">
+        <a href="index.html">Overview</a>
+        <a class="active" href="pipeline.html">Pipeline</a>
+        <a href="live-stats.html">Live Stats</a>
+        <a href="https://salience-demo-jtz9t5jqcu5c2scubyrt7r.streamlit.app/" target="_blank" rel="noopener">Dashboard</a>
+        <a href="https://github.com/pyth2021/Salience-demo" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+    <main>
+        <section>
+            <h2>High-Level Process Flow</h2>
+            <p class="section-lead">Telemetry is stripped of unnecessary personal data at the edge worker endpoint before being transformed, scored, stored, and reported.</p>
+            <div class="flow">
+                <div class="flow-step"><strong>1. Static Website</strong><span>Visitor interacts with the Cloudflare Pages site.</span></div>
+                <div class="flow-step"><strong>2. beacon.js</strong><span>Browser sends limited telemetry events.</span></div>
+                <div class="flow-step"><strong>3. Cloudflare Worker</strong><span>Receives events and applies edge rules.</span></div>
+                <div class="flow-step"><strong>4. Privacy Validation</strong><span>PII is avoided before scoring and storage.</span></div>
+                <div class="flow-step"><strong>5. Azure /predict</strong><span>ML API returns prediction and confidence.</span></div>
+                <div class="flow-step"><strong>6. Cloudflare D1</strong><span>Stores processed event summaries and scores.</span></div>
+                <div class="flow-step"><strong>7. Streamlit Dashboard</strong><span>Reports classifications, risk levels, and evaluation evidence.</span></div>
+            </div>
+            <div class="pill-row">
+                <span class="pill">Worker connected to Azure /predict</span>
+                <span class="pill">End-to-end latency measured</span>
+                <span class="pill">Cloudflare D1 event storage</span>
+                <span class="pill">Streamlit reporting dashboard</span>
+            </div>
+        </section>
+        <section>
+            <h2>Pipeline Steps and System Ownership</h2>
+            <table>
+                <thead><tr><th>Stage</th><th>Owner</th><th>Output</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Collect</strong></td><td>Static website + beacon.js</td><td>Minimized telemetry event</td></tr>
+                    <tr><td><strong>Intake</strong></td><td>Cloudflare Worker</td><td>Accepted event payload</td></tr>
+                    <tr><td><strong>Validate</strong></td><td>Cloudflare Worker privacy logic</td><td>Approved non-sensitive fields</td></tr>
+                    <tr><td><strong>Extract</strong></td><td>Feature extraction pipeline</td><td>ML-ready feature vector</td></tr>
+                    <tr><td><strong>Detect</strong></td><td>Cloudflare Worker Rules + Azure App Service ML API</td><td>Classification + risk score</td></tr>
+                    <tr><td><strong>Report</strong></td><td>Cloudflare D1 + Streamlit Dashboard</td><td>Stored summary + dashboard evidence</td></tr>
+                </tbody>
+            </table>
+        </section>
+        <section>
+            <h2>Detection Methods</h2>
+            <p class="section-lead">The prototype uses a rule baseline plus two trained model files: an unsupervised Isolation Forest model and a supervised Gradient Boosting model.</p>
+            <table>
+                <thead><tr><th>Method</th><th>Learning type</th><th>Purpose</th><th>Model file</th></tr></thead>
+                <tbody>
+                    <tr><td><strong>Rule-based detector</strong></td><td>Rules</td><td>Flags obvious suspicious patterns such as rapid requests, suspicious paths, high error rates, and scanner-like activity.</td><td>Cloudflare Worker logic</td></tr>
+                    <tr><td><strong>Isolation Forest</strong></td><td>Unsupervised anomaly detection</td><td>Identifies traffic patterns that differ from normal behaviour.</td><td><code>isolation_forest_model.pkl</code></td></tr>
+                    <tr><td><strong>Gradient Boosting</strong></td><td>Supervised classification</td><td>Classifies events using labelled synthetic telemetry examples.</td><td><code>gradient_boosting_model.pkl</code></td></tr>
+                </tbody>
+            </table>
+        </section>
+        <section>
+            <h2>Project Boundaries</h2>
+            <div class="grid-2">
+                <div class="card include"><h3>In Scope</h3><ul><li>Professional static website + beacon</li><li>Cloudflare Worker intake endpoint</li><li>Privacy validation + minimized telemetry schema</li><li>Synthetic dataset + feature engineering pipeline</li><li>Rule-based detector + Isolation Forest + Gradient Boosting</li><li>Cloudflare D1 storage + Streamlit Dashboard + evaluation report</li></ul></div>
+                <div class="card exclude"><h3>Out of Scope</h3><ul><li>Real sponsor production data</li><li>Production-grade blocking or CAPTCHA enforcement</li><li>Rate limiting or active mitigation</li><li>Third-party attacks or adversarial testing</li><li>Invasive tracking or browser fingerprinting</li><li>Commercial-ready security product</li></ul></div>
+            </div>
+        </section>
+    </main>
+    <footer>Salience Enterprises Inc. capstone implementation · Pipeline architecture</footer>
+</body>
+</html>

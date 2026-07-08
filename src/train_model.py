@@ -1,27 +1,16 @@
+import json
 import os
-import pandas as pd
 import pickle
+from pathlib import Path
 
+import pandas as pd
+from sklearn.ensemble import GradientBoostingClassifier, IsolationForest
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
-# -----------------------------
-# 1. Load dataset
-# -----------------------------
-data_file = "data/raw/synthetic_telemetry.csv"
-
-df = pd.read_csv(data_file)
-
-print("Dataset loaded successfully.")
-print("Rows:", len(df))
-print("Columns:", list(df.columns))
-
-# -----------------------------
-# 2. Select features and label
-# -----------------------------
-features = [
+DATA_FILE = Path("data/raw/synthetic_telemetry.csv")
+FEATURES = [
     "request_interval_seconds",
     "user_agent_category",
     "has_favicon_request",
@@ -32,82 +21,148 @@ features = [
     "cipher_suite_count",
     "extension_count",
     "alpn",
-    "sni_present"
+    "sni_present",
 ]
+TARGET = "label"
 
-target = "label"
 
-X = df[features].copy()
-y = df[target].copy()
+def encode_features(df: pd.DataFrame):
+    encoded = df[FEATURES].copy()
+    encoders = {}
 
-# -----------------------------
-# 3. Encode text columns
-# -----------------------------
-encoders = {}
+    for column in encoded.columns:
+        if encoded[column].dtype == "object":
+            encoder = LabelEncoder()
+            encoded[column] = encoder.fit_transform(encoded[column].astype(str))
+            encoders[column] = encoder
 
-for column in X.columns:
-    if X[column].dtype == "object":
-        encoder = LabelEncoder()
-        X[column] = encoder.fit_transform(X[column])
-        encoders[column] = encoder
+    return encoded, encoders
 
-label_encoder = LabelEncoder()
-y_encoded = label_encoder.fit_transform(y)
 
-# -----------------------------
-# 4. Split data
-# -----------------------------
-X_train, X_test, y_train, y_test = train_test_split(
-    X,
-    y_encoded,
-    test_size=0.2,
-    random_state=42,
-    stratify=y_encoded
-)
+def false_positive_rate(y_true, y_pred, label_encoder):
+    suspicious = {"bad_bot", "scanner"}
+    true_labels = label_encoder.inverse_transform(y_true)
+    pred_labels = label_encoder.inverse_transform(y_pred)
 
-# -----------------------------
-# 5. Train model
-# -----------------------------
-model = RandomForestClassifier(
-    n_estimators=100,
-    random_state=42
-)
+    fp = 0
+    tn = 0
+    for true_label, pred_label in zip(true_labels, pred_labels):
+        true_is_suspicious = true_label in suspicious
+        pred_is_suspicious = pred_label in suspicious
+        if not true_is_suspicious and pred_is_suspicious:
+            fp += 1
+        if not true_is_suspicious and not pred_is_suspicious:
+            tn += 1
 
-model.fit(X_train, y_train)
+    return fp / (fp + tn) if (fp + tn) else 0.0
 
-# -----------------------------
-# 6. Evaluate model
-# -----------------------------
-y_pred = model.predict(X_test)
 
-accuracy = accuracy_score(y_test, y_pred)
+def main():
+    df = pd.read_csv(DATA_FILE)
+    print("Dataset loaded successfully.")
+    print("Rows:", len(df))
+    print("Columns:", list(df.columns))
 
-print("\nModel training complete.")
-print("Accuracy:", round(accuracy, 4))
+    X, encoders = encode_features(df)
+    label_encoder = LabelEncoder()
+    y = label_encoder.fit_transform(df[TARGET].astype(str))
 
-print("\nClassification Report:")
-print(classification_report(
-    y_test,
-    y_pred,
-    target_names=label_encoder.classes_
-))
+    X_train, X_test, y_train, y_test = train_test_split(
+        X,
+        y,
+        test_size=0.2,
+        random_state=42,
+        stratify=y,
+    )
 
-print("\nConfusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
+    gradient_model = GradientBoostingClassifier(random_state=42)
+    gradient_model.fit(X_train, y_train)
 
-# -----------------------------
-# 7. Save model
-# -----------------------------
-os.makedirs("models", exist_ok=True)
+    isolation_model = IsolationForest(
+        n_estimators=200,
+        contamination=0.18,
+        random_state=42,
+    )
+    isolation_model.fit(X_train)
 
-model_package = {
-    "model": model,
-    "feature_columns": features,
-    "encoders": encoders,
-    "label_encoder": label_encoder
-}
+    y_pred = gradient_model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    report = classification_report(
+        y_test,
+        y_pred,
+        target_names=label_encoder.classes_,
+        output_dict=True,
+        zero_division=0,
+    )
+    matrix = confusion_matrix(y_test, y_pred)
 
-with open("models/bot_detection_model.pkl", "wb") as file:
-    pickle.dump(model_package, file)
+    print("\nGradient Boosting model training complete.")
+    print("Accuracy:", round(accuracy, 4))
+    print("\nClassification Report:")
+    print(classification_report(y_test, y_pred, target_names=label_encoder.classes_, zero_division=0))
+    print("\nConfusion Matrix:")
+    print(matrix)
 
-print("\nSaved model to models/bot_detection_model.pkl")
+    model_dirs = [Path("models"), Path("ml_api/models")]
+    for directory in model_dirs:
+        directory.mkdir(parents=True, exist_ok=True)
+
+    gradient_package = {
+        "model_name": "Gradient Boosting supervised classifier",
+        "model": gradient_model,
+        "feature_columns": FEATURES,
+        "encoders": encoders,
+        "label_encoder": label_encoder,
+    }
+    isolation_package = {
+        "model_name": "Isolation Forest unsupervised anomaly detector",
+        "model": isolation_model,
+        "feature_columns": FEATURES,
+        "encoders": encoders,
+    }
+
+    for directory in model_dirs:
+        with open(directory / "gradient_boosting_model.pkl", "wb") as file:
+            pickle.dump(gradient_package, file)
+        with open(directory / "isolation_forest_model.pkl", "wb") as file:
+            pickle.dump(isolation_package, file)
+        # Compatibility alias for older deployment startup settings.
+        with open(directory / "bot_detection_model.pkl", "wb") as file:
+            pickle.dump(gradient_package, file)
+
+    class_metrics = []
+    for class_name in label_encoder.classes_:
+        metrics = report.get(class_name, {})
+        class_metrics.append({
+            "class": class_name,
+            "precision": round(float(metrics.get("precision", 0)), 3),
+            "recall": round(float(metrics.get("recall", 0)), 3),
+            "f1_score": round(float(metrics.get("f1-score", 0)), 3),
+        })
+
+    evaluation = {
+        "dataset": "Synthetic telemetry dataset",
+        "test_records": int(len(y_test)),
+        "model_family": "Rule-based baseline + Isolation Forest + Gradient Boosting",
+        "accuracy": round(float(accuracy), 3),
+        "weighted_precision": round(float(report["weighted avg"]["precision"]), 3),
+        "weighted_recall": round(float(report["weighted avg"]["recall"]), 3),
+        "weighted_f1": round(float(report["weighted avg"]["f1-score"]), 3),
+        "false_positive_rate": round(float(false_positive_rate(y_test, y_pred, label_encoder)), 3),
+        "class_metrics": class_metrics,
+        "confusion_matrix_labels": list(label_encoder.classes_),
+        "confusion_matrix": matrix.tolist(),
+    }
+
+    eval_path = Path("dashboard/dashboard/model_evaluation.json")
+    eval_path.parent.mkdir(parents=True, exist_ok=True)
+    eval_path.write_text(json.dumps(evaluation, indent=2), encoding="utf-8")
+
+    print("\nSaved supervised model to models/gradient_boosting_model.pkl and ml_api/models/gradient_boosting_model.pkl")
+    print("Saved unsupervised model to models/isolation_forest_model.pkl and ml_api/models/isolation_forest_model.pkl")
+    print("Saved compatibility alias to bot_detection_model.pkl")
+    print("Saved dashboard evaluation to dashboard/dashboard/model_evaluation.json")
+
+
+if __name__ == "__main__":
+    main()
