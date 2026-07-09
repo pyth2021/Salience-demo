@@ -13,10 +13,10 @@ A Cybersecurity and Artificial Intelligence capstone implementation for **Salien
 
 ## Team Members
 
-1. Mahin Chowdhury
-2. Naveen Saranya Patro Behara
-3. Olamide Akinyosola
-4. Suma Madasu
+Mahin Chowdhury
+Naveen Saranya Patro Behara
+Olamide Akinyosola
+Suma Madasu
 
 ## Live Links
 
