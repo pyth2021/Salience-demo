@@ -5,7 +5,9 @@ import os
 
 app = Flask(__name__)
 
-
+# This file is a compatibility alias for the Gradient Boosting model.
+# train_model.py saves the Gradient Boosting package as bot_detection_model.pkl
+# so Azure can load it using the existing deployment path.
 MODEL_PATH = os.path.join("models", "bot_detection_model.pkl")
 
 with open(MODEL_PATH, "rb") as file:
@@ -22,6 +24,7 @@ def home():
     return jsonify({
         "status": "running",
         "service": "Salience ML Bot Detection API",
+        "model": model_package.get("model_name", "Unknown model"),
         "endpoints": {
             "health": "/health",
             "predict": "/predict"
@@ -33,15 +36,27 @@ def home():
 def health():
     return jsonify({
         "status": "healthy",
-        "model_loaded": True
+        "model_loaded": True,
+        "model": model_package.get("model_name", "Unknown model"),
+        "feature_count": len(feature_columns),
+        "features": feature_columns
     })
 
 
 @app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
+    if data is None:
+        return jsonify({
+            "error": "Invalid or missing JSON body."
+        }), 400
+
+    # Must match the 14 FEATURES list used in src/train_model.py
     input_row = {
+        "page_path": data.get("page_path", "/"),
+        "interaction_type": data.get("interaction_type", "normal_browsing"),
+        "scroll_depth_category": data.get("scroll_depth_category", "medium"),
         "request_interval_seconds": float(data.get("request_interval_seconds", 10)),
         "user_agent_category": data.get("user_agent_category", "normal_browser"),
         "has_favicon_request": int(data.get("has_favicon_request", 1)),
@@ -57,15 +72,19 @@ def predict():
 
     input_df = pd.DataFrame([input_row])
 
+    # Encode categorical values using the saved training encoders.
+    # If a new unseen category appears, use the first known category
+    # to avoid breaking the live API.
     for column, encoder in encoders.items():
         if column in input_df.columns:
-            value = input_df.loc[0, column]
+            value = str(input_df.loc[0, column])
 
             if value in encoder.classes_:
-                input_df[column] = encoder.transform(input_df[column])
+                input_df[column] = encoder.transform([value])
             else:
                 input_df[column] = encoder.transform([encoder.classes_[0]])
 
+    # Ensure the live input columns match the trained model columns exactly.
     input_df = input_df[feature_columns]
 
     prediction_encoded = model.predict(input_df)[0]
@@ -78,7 +97,9 @@ def predict():
         "ml_prediction": ml_prediction,
         "confidence": confidence,
         "features_used": input_row,
-        "privacy_note": "No passwords, cookies, tokens, or raw IP addresses are collected."
+        "model": model_package.get("model_name", "Gradient Boosting supervised classifier"),
+        "feature_count": len(feature_columns),
+        "privacy_note": "Only minimized telemetry is used. No passwords, cookies, tokens, names, emails, private content, exact location, or raw IP addresses are collected."
     })
 
 

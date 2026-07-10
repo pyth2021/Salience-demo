@@ -13,16 +13,16 @@ A Cybersecurity and Artificial Intelligence capstone implementation for **Salien
 
 ## Team Members
 
-Mahin Chowdhury
-Naveen Saranya Patro Behara
-Olamide Akinyosola
-Suma Madasu
+- Mahin Chowdhury
+- Naveen Saranya Patro Behara
+- Olamide Akinyosola
+- Suma Madasu
 
 ## Live Links
 
 - **Website:** https://salience-demo.pages.dev
 - **Worker Events API:** https://salience-beacon-worker.mahin0710.workers.dev/events
-- **Dashboard:** https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app
+- **Dashboard:** https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/
 - **Repository:** https://github.com/pyth2021/Salience-demo
 
 ## Website Pages

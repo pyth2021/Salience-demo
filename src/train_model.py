@@ -11,6 +11,10 @@ from sklearn.preprocessing import LabelEncoder
 
 DATA_FILE = Path("data/raw/synthetic_telemetry.csv")
 FEATURES = [
+
+    "page_path",
+    "interaction_type",
+    "scroll_depth_category",
     "request_interval_seconds",
     "user_agent_category",
     "has_favicon_request",
@@ -21,7 +25,7 @@ FEATURES = [
     "cipher_suite_count",
     "extension_count",
     "alpn",
-    "sni_present",
+    "sni_present",   
 ]
 TARGET = "label"
 

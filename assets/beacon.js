@@ -1,55 +1,83 @@
-const WORKER_URL = "https://salience-beacon-worker.mahin0710.workers.dev";
+// Cloudflare Worker endpoint that receives telemetry events.
+const WORKER_URL =
+    "https://salience-beacon-worker.mahin0710.workers.dev";
 
+/**
+ * Displays the current request or response inside the HTML element
+ * with id="result".
+ */
 function showResult(payload) {
     const resultBox = document.getElementById("result");
+
     if (resultBox) {
-        resultBox.innerText = JSON.stringify(payload, null, 2);
+        resultBox.textContent = JSON.stringify(payload, null, 2);
     }
 }
 
+/**
+ * Sends a minimized telemetry event to the Cloudflare Worker.
+ */
 async function sendBeaconEvent(telemetry) {
     const safeTelemetry = {
         ...telemetry,
-        page_path: telemetry.page_path || window.location.pathname,
-        event_source: "salience-demo-pages",
-        client_timestamp: new Date().toISOString()
+
+        // Use the current page when no page path was supplied.
+        page_path:
+            telemetry.page_path || window.location.pathname,
+
+        // Optional client-side timestamp.
+        // The Worker also creates its own timestamp before saving to D1.
+        timestamp: new Date().toISOString()
     };
 
     showResult({
         status: "sending",
-        message: "Sending controlled minimized telemetry event to the Cloudflare Worker.",
+        message:
+            "Sending a controlled, minimized telemetry event to the Cloudflare Worker.",
         event: safeTelemetry
     });
 
     try {
         const response = await fetch(WORKER_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(safeTelemetry)
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(safeTelemetry),
+            cache: "no-store"
         });
 
-        const text = await response.text();
-        let result;
+        const responseText = await response.text();
+
+        let workerResult;
+
         try {
-            result = JSON.parse(text);
-        } catch (error) {
-            result = { status: response.status, response_text: text };
+            workerResult = JSON.parse(responseText);
+        } catch {
+            workerResult = {
+                response_text: responseText
+            };
         }
 
         showResult({
+            status: response.ok ? "success" : "worker_error",
             worker_status: response.status,
             worker_endpoint: WORKER_URL,
-            result
+            result: workerResult
         });
     } catch (error) {
         showResult({
-            status: "error",
-            message: "Could not send telemetry event to the Cloudflare Worker.",
+            status: "network_error",
+            message:
+                "Could not send the telemetry event to the Cloudflare Worker.",
             error: String(error)
         });
     }
 }
 
+/**
+ * Simulated normal human browsing event.
+ */
 function humanTelemetry() {
     return {
         page_path: window.location.pathname,
@@ -69,6 +97,9 @@ function humanTelemetry() {
     };
 }
 
+/**
+ * Simulated legitimate crawler / good bot event.
+ */
 function goodBotTelemetry() {
     return {
         page_path: "/robots.txt",
@@ -88,6 +119,9 @@ function goodBotTelemetry() {
     };
 }
 
+/**
+ * Simulated malicious bot event.
+ */
 function badBotTelemetry() {
     return {
         page_path: "/products.html",
@@ -98,7 +132,7 @@ function badBotTelemetry() {
         has_favicon_request: 0,
         requested_robots_txt: 0,
         pages_per_session: 100,
-        error_rate: 0.20,
+        error_rate: 0.2,
         tls_version: "TLS1.2",
         cipher_suite_count: 5,
         extension_count: 4,
@@ -107,6 +141,9 @@ function badBotTelemetry() {
     };
 }
 
+/**
+ * Simulated vulnerability scanner event.
+ */
 function scannerTelemetry() {
     return {
         page_path: "/admin",
@@ -117,7 +154,7 @@ function scannerTelemetry() {
         has_favicon_request: 0,
         requested_robots_txt: 0,
         pages_per_session: 150,
-        error_rate: 0.60,
+        error_rate: 0.6,
         tls_version: "TLS1.2",
         cipher_suite_count: 4,
         extension_count: 3,
@@ -126,16 +163,30 @@ function scannerTelemetry() {
     };
 }
 
-const buttonMappings = [
-    ["humanButton", humanTelemetry],
-    ["goodBotButton", goodBotTelemetry],
-    ["badBotButton", badBotTelemetry],
-    ["scannerButton", scannerTelemetry]
-];
+/**
+ * Connect each HTML button to its corresponding telemetry event.
+ */
+function initializeTelemetryButtons() {
+    const buttonMappings = [
+        ["humanButton", humanTelemetry],
+        ["goodBotButton", goodBotTelemetry],
+        ["badBotButton", badBotTelemetry],
+        ["scannerButton", scannerTelemetry]
+    ];
 
-buttonMappings.forEach(([id, telemetryFactory]) => {
-    const button = document.getElementById(id);
-    if (button) {
-        button.addEventListener("click", () => sendBeaconEvent(telemetryFactory()));
-    }
-});
+    buttonMappings.forEach(([buttonId, telemetryFactory]) => {
+        const button = document.getElementById(buttonId);
+
+        if (button) {
+            button.addEventListener("click", () => {
+                sendBeaconEvent(telemetryFactory());
+            });
+        }
+    });
+}
+
+// Wait until the HTML page has loaded before searching for buttons.
+document.addEventListener(
+    "DOMContentLoaded",
+    initializeTelemetryButtons
+);
