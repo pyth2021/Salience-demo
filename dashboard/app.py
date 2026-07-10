@@ -68,11 +68,12 @@ def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 errors="coerce",
             ).round(2)
 
+    # Cap risk score between 0 and 100 so old bad records cannot break the dashboard average.
     if "risk_score" in cleaned_df.columns:
         cleaned_df["risk_score"] = pd.to_numeric(
             cleaned_df["risk_score"],
             errors="coerce",
-        ).round(0).astype("Int64")
+        ).clip(lower=0, upper=100).round(0).astype("Int64")
 
     integer_columns = [
         "has_favicon_request",
@@ -125,6 +126,7 @@ try:
                 high_risk = df[df["risk_level"].str.lower() == "high"].shape[0]
             else:
                 high_risk = "N/A"
+
             st.metric("High-Risk Events", high_risk)
 
         with col3:
