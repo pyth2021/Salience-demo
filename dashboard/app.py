@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 
+import altair as alt
 import pandas as pd
 import requests
 import streamlit as st
@@ -17,6 +18,7 @@ st.set_page_config(
     page_icon="🛡️",
     layout="wide",
 )
+
 
 # -----------------------------
 # Header
@@ -68,12 +70,17 @@ def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
                 errors="coerce",
             ).round(2)
 
-    # Cap risk score between 0 and 100 so old bad records cannot break the dashboard average.
+    # Keep risk scores between 0 and 100.
     if "risk_score" in cleaned_df.columns:
-        cleaned_df["risk_score"] = pd.to_numeric(
-            cleaned_df["risk_score"],
-            errors="coerce",
-        ).clip(lower=0, upper=100).round(0).astype("Int64")
+        cleaned_df["risk_score"] = (
+            pd.to_numeric(
+                cleaned_df["risk_score"],
+                errors="coerce",
+            )
+            .clip(lower=0, upper=100)
+            .round(0)
+            .astype("Int64")
+        )
 
     integer_columns = [
         "has_favicon_request",
@@ -94,18 +101,61 @@ def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return cleaned_df
 
 
+def format_prediction_name(value: str) -> str:
+    """Convert internal prediction labels into readable dashboard labels."""
+
+    display_names = {
+        "human": "Human",
+        "good_bot": "Good Bot",
+        "bad_bot": "Bad Bot",
+        "scanner": "Scanner",
+        "azure_api_error": "API Error",
+    }
+
+    normalized_value = str(value).strip().lower()
+
+    return display_names.get(
+        normalized_value,
+        normalized_value.replace("_", " ").title(),
+    )
+
+
+def format_risk_name(value: str) -> str:
+    """Convert internal risk labels into readable dashboard labels."""
+
+    display_names = {
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+    }
+
+    normalized_value = str(value).strip().lower()
+
+    return display_names.get(
+        normalized_value,
+        normalized_value.replace("_", " ").title(),
+    )
+
+
 # -----------------------------
 # Live Worker Events
 # -----------------------------
 try:
-    response = requests.get(WORKER_EVENTS_URL, timeout=10)
+    response = requests.get(
+        WORKER_EVENTS_URL,
+        timeout=10,
+    )
+
     response.raise_for_status()
 
     payload = response.json()
     events = payload.get("events", [])
 
     if not events:
-        st.warning("No live telemetry events found yet. Use the website test buttons first.")
+        st.warning(
+            "No live telemetry events found yet. "
+            "Use the website test buttons first."
+        )
 
     else:
         df = pd.DataFrame(events)
@@ -119,15 +169,31 @@ try:
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric("Total Events", len(df))
+            st.metric(
+                "Total Events",
+                len(df),
+            )
 
         with col2:
             if "risk_level" in df.columns:
-                high_risk = df[df["risk_level"].str.lower() == "high"].shape[0]
+                risk_values = (
+                    df["risk_level"]
+                    .fillna("")
+                    .astype(str)
+                    .str.lower()
+                )
+
+                high_risk = int(
+                    (risk_values == "high").sum()
+                )
+
             else:
                 high_risk = "N/A"
 
-            st.metric("High-Risk Events", high_risk)
+            st.metric(
+                "High-Risk Events",
+                high_risk,
+            )
 
         with col3:
             if "risk_score" in df.columns:
@@ -140,14 +206,25 @@ try:
                     avg_risk_display = f"{avg_risk:.2f}"
                 else:
                     avg_risk_display = "N/A"
+
             else:
                 avg_risk_display = "N/A"
 
-            st.metric("Average Risk Score", avg_risk_display)
+            st.metric(
+                "Average Risk Score",
+                avg_risk_display,
+            )
 
         with col4:
-            unique_paths = df["page_path"].nunique() if "page_path" in df.columns else "N/A"
-            st.metric("Unique Paths", unique_paths)
+            if "page_path" in df.columns:
+                unique_paths = df["page_path"].nunique()
+            else:
+                unique_paths = "N/A"
+
+            st.metric(
+                "Unique Paths",
+                unique_paths,
+            )
 
         st.markdown("---")
 
@@ -159,12 +236,141 @@ try:
         with chart_col1:
             if "worker_prediction" in df.columns:
                 st.subheader("Worker Prediction Counts")
-                st.bar_chart(df["worker_prediction"].value_counts())
+
+                prediction_counts = (
+                    df["worker_prediction"]
+                    .fillna("unknown")
+                    .astype(str)
+                    .str.lower()
+                    .value_counts()
+                    .rename_axis("worker_prediction")
+                    .reset_index(name="count")
+                )
+
+                prediction_counts["Prediction"] = (
+                    prediction_counts["worker_prediction"]
+                    .apply(format_prediction_name)
+                )
+
+                prediction_chart = (
+                    alt.Chart(prediction_counts)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X(
+                            "Prediction:N",
+                            title="Prediction",
+                            sort="-y",
+                            axis=alt.Axis(
+                                labelAngle=0,
+                                labelFontSize=12,
+                                labelFontWeight="normal",
+                                labelLimit=140,
+                                titleFontSize=13,
+                                titleFontWeight="bold",
+                            ),
+                        ),
+                        y=alt.Y(
+                            "count:Q",
+                            title="Number of Events",
+                            axis=alt.Axis(
+                                labelFontSize=12,
+                                titleFontSize=13,
+                                titleFontWeight="bold",
+                                tickMinStep=1,
+                            ),
+                        ),
+                        tooltip=[
+                            alt.Tooltip(
+                                "Prediction:N",
+                                title="Prediction",
+                            ),
+                            alt.Tooltip(
+                                "count:Q",
+                                title="Events",
+                            ),
+                        ],
+                    )
+                    .properties(
+                        height=320,
+                    )
+                )
+
+                st.altair_chart(
+                    prediction_chart,
+                    use_container_width=True,
+                )
 
         with chart_col2:
             if "risk_level" in df.columns:
                 st.subheader("Risk Level Counts")
-                st.bar_chart(df["risk_level"].value_counts())
+
+                risk_counts = (
+                    df["risk_level"]
+                    .fillna("unknown")
+                    .astype(str)
+                    .str.lower()
+                    .value_counts()
+                    .rename_axis("risk_level")
+                    .reset_index(name="count")
+                )
+
+                risk_counts["Risk Level"] = (
+                    risk_counts["risk_level"]
+                    .apply(format_risk_name)
+                )
+
+                risk_chart = (
+                    alt.Chart(risk_counts)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X(
+                            "Risk Level:N",
+                            title="Risk Level",
+                            sort=[
+                                "High",
+                                "Medium",
+                                "Low",
+                                "Unknown",
+                            ],
+                            axis=alt.Axis(
+                                labelAngle=0,
+                                labelFontSize=12,
+                                labelFontWeight="normal",
+                                labelLimit=140,
+                                titleFontSize=13,
+                                titleFontWeight="bold",
+                            ),
+                        ),
+                        y=alt.Y(
+                            "count:Q",
+                            title="Number of Events",
+                            axis=alt.Axis(
+                                labelFontSize=12,
+                                titleFontSize=13,
+                                titleFontWeight="bold",
+                                tickMinStep=1,
+                            ),
+                        ),
+                        tooltip=[
+                            alt.Tooltip(
+                                "Risk Level:N",
+                                title="Risk Level",
+                            ),
+                            alt.Tooltip(
+                                "count:Q",
+                                title="Events",
+                            ),
+                        ],
+                    )
+                    .properties(
+                        height=320,
+                    )
+                )
+
+                st.altair_chart(
+                    risk_chart,
+                    use_container_width=True,
+                )
 
         st.markdown("---")
 
@@ -197,7 +403,9 @@ try:
         ]
 
         existing_columns = [
-            column for column in preferred_columns if column in df.columns
+            column
+            for column in preferred_columns
+            if column in df.columns
         ]
 
         st.dataframe(
@@ -214,7 +422,17 @@ try:
             )
 
 except requests.exceptions.RequestException as error:
-    st.error("Could not load live telemetry data from the Cloudflare Worker.")
+    st.error(
+        "Could not load live telemetry data from the Cloudflare Worker."
+    )
+
+    st.write(error)
+
+except ValueError as error:
+    st.error(
+        "The Cloudflare Worker returned data that could not be read as JSON."
+    )
+
     st.write(error)
 
 
@@ -230,21 +448,37 @@ st.write(
     "trained model performed during testing."
 )
 
-evaluation_path = Path(__file__).parent / "dashboard" / "model_evaluation.json"
+evaluation_path = (
+    Path(__file__).parent
+    / "dashboard"
+    / "model_evaluation.json"
+)
 
 if not evaluation_path.exists():
-    evaluation_path = Path(__file__).parent / "model_evaluation.json"
+    evaluation_path = (
+        Path(__file__).parent
+        / "model_evaluation.json"
+    )
 
 if evaluation_path.exists():
-    with open(evaluation_path, "r", encoding="utf-8") as file:
+    with open(
+        evaluation_path,
+        "r",
+        encoding="utf-8",
+    ) as file:
         evaluation = json.load(file)
 
     st.markdown("### Overall Performance")
 
-    eval_col1, eval_col2, eval_col3, eval_col4, eval_col5 = st.columns(5)
+    eval_col1, eval_col2, eval_col3, eval_col4, eval_col5 = (
+        st.columns(5)
+    )
 
     with eval_col1:
-        st.metric("Accuracy", f"{evaluation.get('accuracy', 0) * 100:.2f}%")
+        st.metric(
+            "Accuracy",
+            f"{evaluation.get('accuracy', 0) * 100:.2f}%",
+        )
 
     with eval_col2:
         st.metric(
@@ -275,20 +509,31 @@ if evaluation_path.exists():
     detail_col1, detail_col2, detail_col3 = st.columns(3)
 
     with detail_col1:
-        st.info(f"Dataset: {evaluation.get('dataset', 'N/A')}")
+        st.info(
+            f"Dataset: {evaluation.get('dataset', 'N/A')}"
+        )
 
     with detail_col2:
-        st.info(f"Test Records: {evaluation.get('test_records', 'N/A')}")
+        st.info(
+            f"Test Records: {evaluation.get('test_records', 'N/A')}"
+        )
 
     with detail_col3:
-        st.info(f"Model Family: {evaluation.get('model_family', 'N/A')}")
+        st.info(
+            f"Model Family: {evaluation.get('model_family', 'N/A')}"
+        )
 
     st.markdown("### Class-Level Metrics")
 
-    class_metrics = evaluation.get("class_metrics", [])
+    class_metrics = evaluation.get(
+        "class_metrics",
+        [],
+    )
 
     if class_metrics:
-        class_df = pd.DataFrame(class_metrics)
+        class_df = pd.DataFrame(
+            class_metrics
+        )
 
         class_df = class_df.rename(
             columns={
@@ -299,7 +544,17 @@ if evaluation_path.exists():
             }
         )
 
-        for metric_column in ["Precision", "Recall", "F1-Score"]:
+        if "Class" in class_df.columns:
+            class_df["Class"] = (
+                class_df["Class"]
+                .apply(format_prediction_name)
+            )
+
+        for metric_column in [
+            "Precision",
+            "Recall",
+            "F1-Score",
+        ]:
             if metric_column in class_df.columns:
                 class_df[metric_column] = pd.to_numeric(
                     class_df[metric_column],
@@ -313,18 +568,38 @@ if evaluation_path.exists():
         )
 
     else:
-        st.info("Class-level metrics are not available.")
+        st.info(
+            "Class-level metrics are not available."
+        )
 
     st.markdown("### Confusion Matrix")
 
-    confusion_matrix = evaluation.get("confusion_matrix", [])
-    labels = evaluation.get("confusion_matrix_labels", [])
+    confusion_matrix = evaluation.get(
+        "confusion_matrix",
+        [],
+    )
+
+    labels = evaluation.get(
+        "confusion_matrix_labels",
+        [],
+    )
 
     if confusion_matrix and labels:
+        readable_labels = [
+            format_prediction_name(label)
+            for label in labels
+        ]
+
         cm_df = pd.DataFrame(
             confusion_matrix,
-            index=[f"Actual: {label}" for label in labels],
-            columns=[f"Predicted: {label}" for label in labels],
+            index=[
+                f"Actual: {label}"
+                for label in readable_labels
+            ],
+            columns=[
+                f"Predicted: {label}"
+                for label in readable_labels
+            ],
         )
 
         st.dataframe(
@@ -333,12 +608,16 @@ if evaluation_path.exists():
         )
 
     else:
-        st.info("Confusion matrix is not available.")
+        st.info(
+            "Confusion matrix is not available."
+        )
 
 else:
     st.warning(
-        "Model evaluation file was not found. Make sure model_evaluation.json is saved in "
-        "dashboard/dashboard/model_evaluation.json or dashboard/model_evaluation.json."
+        "Model evaluation file was not found. Make sure "
+        "model_evaluation.json is saved in "
+        "dashboard/dashboard/model_evaluation.json or "
+        "dashboard/model_evaluation.json."
     )
 
 
@@ -349,7 +628,8 @@ st.markdown("---")
 st.subheader("Privacy-Preserving Telemetry Note")
 
 st.write(
-    "The system stores minimized telemetry summaries only. It does not store raw IP addresses, "
-    "names, emails, passwords, cookies, authentication tokens, private user content, exact "
+    "The system stores minimized telemetry summaries only. "
+    "It does not store raw IP addresses, names, emails, passwords, "
+    "cookies, authentication tokens, private user content, exact "
     "location, or invasive browser fingerprinting."
 )
