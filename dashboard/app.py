@@ -30,7 +30,6 @@ WORKER_EVENTS_URL = os.getenv(
     "https://salience-beacon-worker.mahin0710.workers.dev/events",
 )
 
-# Replace this default URL with your actual Cloudflare Pages website.
 
 # ---------------------------------------------------------
 # HEADER
@@ -285,7 +284,6 @@ try:
 
         st.markdown("---")
 
-
         # -------------------------------------------------
         # DETECTION CHARTS
         # -------------------------------------------------
@@ -293,7 +291,6 @@ try:
         st.subheader("Live Detection Results")
 
         chart_col1, chart_col2, chart_col3 = st.columns(3)
-
 
         # -------------------------------------------------
         # SUPERVISED GRADIENT BOOSTING CHART
@@ -393,7 +390,6 @@ try:
                         prediction_chart,
                         use_container_width=True,
                     )
-
 
         # -------------------------------------------------
         # UNSUPERVISED ISOLATION FOREST CHART
@@ -496,7 +492,6 @@ try:
                         use_container_width=True,
                     )
 
-
         # -------------------------------------------------
         # RULE-BASED RISK CHART
         # -------------------------------------------------
@@ -584,7 +579,6 @@ try:
         )
 
         st.markdown("---")
-
 
         # -------------------------------------------------
         # LATEST EVENTS TABLE
@@ -683,7 +677,6 @@ try:
             use_container_width=True,
             hide_index=True,
         )
-
 
         # -------------------------------------------------
         # RAW EVENT DATA
@@ -797,7 +790,6 @@ if evaluation_path.exists():
             f"{evaluation.get('false_positive_rate', 0) * 100:.2f}%",
         )
 
-
     # -----------------------------------------------------
     # MODEL DETAILS
     # -----------------------------------------------------
@@ -833,7 +825,6 @@ if evaluation_path.exists():
         f"Model Family: "
         f"{evaluation.get('model_family', 'N/A')}"
     )
-
 
     # -----------------------------------------------------
     # CLASS-LEVEL METRICS
@@ -885,7 +876,6 @@ if evaluation_path.exists():
         st.info(
             "Class-level metrics are not available."
         )
-
 
     # -----------------------------------------------------
     # CONFUSION MATRIX
