@@ -1,3 +1,52 @@
+st.markdown(
+    """
+    <style>
+        .dashboard-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-nav a {
+            color: #0b2e59;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .dashboard-nav a:hover {
+            text-decoration: underline;
+        }
+
+        .dashboard-nav .active {
+            color: #0b7a53;
+            border-bottom: 2px solid #0b7a53;
+            padding-bottom: 4px;
+        }
+    </style>
+
+    <div class="dashboard-nav">
+        <a href="https://salience-demo.pages.dev/" target="_self">
+            Overview
+        </a>
+
+        <a href="https://salience-demo.pages.dev/pipeline.html" target="_self">
+            Pipeline
+        </a>
+
+        <a class="active" href="#" target="_self">
+            Live Stats
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+
+
 from __future__ import annotations
 
 import json
