@@ -10,9 +10,10 @@ import requests
 import streamlit as st
 
 
-# -----------------------------
-# Page Setup
-# -----------------------------
+# ---------------------------------------------------------
+# PAGE SETUP
+# ---------------------------------------------------------
+
 st.set_page_config(
     page_title="Salience Bot Detection Dashboard",
     page_icon="🛡️",
@@ -20,9 +21,52 @@ st.set_page_config(
 )
 
 
-# -----------------------------
-# Header
-# -----------------------------
+# ---------------------------------------------------------
+# CONFIGURATION
+# ---------------------------------------------------------
+
+WORKER_EVENTS_URL = os.getenv(
+    "WORKER_EVENTS_URL",
+    "https://salience-beacon-worker.mahin0710.workers.dev/events",
+)
+
+# Replace this default URL with your actual Cloudflare Pages website.
+MAIN_SITE_URL = os.getenv(
+    "MAIN_SITE_URL",
+    "https://salience-demo.pages.dev/",
+)
+
+
+# ---------------------------------------------------------
+# BACK TO WEBSITE LINK
+# ---------------------------------------------------------
+
+st.markdown(
+    f"""
+    <a
+        href="{MAIN_SITE_URL}"
+        target="_self"
+        style="
+            display: inline-block;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+        "
+    >
+        ← Back to Main Site
+    </a>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ---------------------------------------------------------
+# HEADER
+# ---------------------------------------------------------
+
 st.title("🛡️ Salience Bot Detection Dashboard")
 
 st.write(
@@ -32,45 +76,38 @@ st.write(
 )
 
 st.caption(
-    "This dashboard focuses on live telemetry, prediction results, risk scoring, "
-    "and model evaluation evidence."
-)
-
-st.markdown("---")
-
-
-# -----------------------------
-# Worker API Configuration
-# -----------------------------
-WORKER_EVENTS_URL = os.getenv(
-    "WORKER_EVENTS_URL",
-    "https://salience-beacon-worker.mahin0710.workers.dev/events",
+    "The dashboard shows rule-based risk scoring, supervised Gradient Boosting "
+    "classification, unsupervised Isolation Forest anomaly detection, and "
+    "offline model evaluation evidence."
 )
 
 st.caption(f"Worker events API: {WORKER_EVENTS_URL}")
 
+st.markdown("---")
 
-# -----------------------------
-# Helper Functions
-# -----------------------------
+
+# ---------------------------------------------------------
+# HELPER FUNCTIONS
+# ---------------------------------------------------------
+
 def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
-    """Format numeric columns for a cleaner dashboard table."""
+    """Clean numeric fields before displaying live telemetry."""
 
     cleaned_df = df.copy()
 
-    numeric_columns_2dp = [
+    decimal_columns = [
         "request_interval_seconds",
         "error_rate",
+        "isolation_decision_score",
     ]
 
-    for column in numeric_columns_2dp:
+    for column in decimal_columns:
         if column in cleaned_df.columns:
             cleaned_df[column] = pd.to_numeric(
                 cleaned_df[column],
                 errors="coerce",
-            ).round(2)
+            ).round(4)
 
-    # Keep risk scores between 0 and 100.
     if "risk_score" in cleaned_df.columns:
         cleaned_df["risk_score"] = (
             pd.to_numeric(
@@ -89,6 +126,7 @@ def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
         "cipher_suite_count",
         "extension_count",
         "sni_present",
+        "anomaly_detected",
     ]
 
     for column in integer_columns:
@@ -101,15 +139,18 @@ def clean_live_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return cleaned_df
 
 
-def format_prediction_name(value: str) -> str:
-    """Convert internal prediction labels into readable dashboard labels."""
+def format_prediction_name(value: object) -> str:
+    """Convert internal supervised labels into readable labels."""
 
     display_names = {
         "human": "Human",
         "good_bot": "Good Bot",
         "bad_bot": "Bad Bot",
         "scanner": "Scanner",
+        "scanner_like": "Scanner",
+        "bad_bot_or_scanner": "Bad Bot / Scanner",
         "azure_api_error": "API Error",
+        "unknown": "Unknown",
     }
 
     normalized_value = str(value).strip().lower()
@@ -120,13 +161,33 @@ def format_prediction_name(value: str) -> str:
     )
 
 
-def format_risk_name(value: str) -> str:
-    """Convert internal risk labels into readable dashboard labels."""
+def format_isolation_name(value: object) -> str:
+    """Convert Isolation Forest labels into readable labels."""
+
+    display_names = {
+        "normal": "Normal",
+        "anomaly": "Anomaly",
+        "unknown": "Unknown",
+        "none": "Unknown",
+        "nan": "Unknown",
+    }
+
+    normalized_value = str(value).strip().lower()
+
+    return display_names.get(
+        normalized_value,
+        normalized_value.replace("_", " ").title(),
+    )
+
+
+def format_risk_name(value: object) -> str:
+    """Convert internal risk labels into readable labels."""
 
     display_names = {
         "low": "Low",
         "medium": "Medium",
         "high": "High",
+        "unknown": "Unknown",
     }
 
     normalized_value = str(value).strip().lower()
@@ -137,9 +198,26 @@ def format_risk_name(value: str) -> str:
     )
 
 
-# -----------------------------
-# Live Worker Events
-# -----------------------------
+def anomaly_boolean_series(df: pd.DataFrame) -> pd.Series:
+    """Convert stored anomaly values into true or false values."""
+
+    if "anomaly_detected" not in df.columns:
+        return pd.Series(False, index=df.index)
+
+    return (
+        df["anomaly_detected"]
+        .fillna(0)
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .isin(["1", "true", "yes"])
+    )
+
+
+# ---------------------------------------------------------
+# LIVE WORKER EVENTS
+# ---------------------------------------------------------
+
 try:
     response = requests.get(
         WORKER_EVENTS_URL,
@@ -153,20 +231,21 @@ try:
 
     if not events:
         st.warning(
-            "No live telemetry events found yet. "
-            "Use the website test buttons first."
+            "No live telemetry events were found. "
+            "Use the website test buttons to create events."
         )
 
     else:
         df = pd.DataFrame(events)
         df = clean_live_dataframe(df)
 
-        # -----------------------------
-        # Summary Metrics
-        # -----------------------------
+        # -------------------------------------------------
+        # SUMMARY METRICS
+        # -------------------------------------------------
+
         st.subheader("Live Prototype Summary")
 
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
         with col1:
             st.metric(
@@ -176,48 +255,57 @@ try:
 
         with col2:
             if "risk_level" in df.columns:
-                risk_values = (
-                    df["risk_level"]
-                    .fillna("")
-                    .astype(str)
-                    .str.lower()
+                high_risk_events = int(
+                    (
+                        df["risk_level"]
+                        .fillna("")
+                        .astype(str)
+                        .str.lower()
+                        == "high"
+                    ).sum()
                 )
-
-                high_risk = int(
-                    (risk_values == "high").sum()
-                )
-
             else:
-                high_risk = "N/A"
+                high_risk_events = "N/A"
 
             st.metric(
                 "High-Risk Events",
-                high_risk,
+                high_risk_events,
             )
 
         with col3:
             if "risk_score" in df.columns:
-                avg_risk = pd.to_numeric(
+                average_risk = pd.to_numeric(
                     df["risk_score"],
                     errors="coerce",
                 ).mean()
 
-                if pd.notna(avg_risk):
-                    avg_risk_display = f"{avg_risk:.2f}"
+                if pd.notna(average_risk):
+                    average_risk_display = f"{average_risk:.2f} / 100"
                 else:
-                    avg_risk_display = "N/A"
-
+                    average_risk_display = "N/A"
             else:
-                avg_risk_display = "N/A"
+                average_risk_display = "N/A"
 
             st.metric(
                 "Average Risk Score",
-                avg_risk_display,
+                average_risk_display,
             )
 
         with col4:
+            anomaly_count = int(
+                anomaly_boolean_series(df).sum()
+            )
+
+            st.metric(
+                "Detected Anomalies",
+                anomaly_count,
+            )
+
+        with col5:
             if "page_path" in df.columns:
-                unique_paths = df["page_path"].nunique()
+                unique_paths = int(
+                    df["page_path"].nunique()
+                )
             else:
                 unique_paths = "N/A"
 
@@ -228,82 +316,224 @@ try:
 
         st.markdown("---")
 
-        # -----------------------------
-        # Charts
-        # -----------------------------
-        chart_col1, chart_col2 = st.columns(2)
+
+        # -------------------------------------------------
+        # DETECTION CHARTS
+        # -------------------------------------------------
+
+        st.subheader("Live Detection Results")
+
+        chart_col1, chart_col2, chart_col3 = st.columns(3)
+
+
+        # -------------------------------------------------
+        # SUPERVISED GRADIENT BOOSTING CHART
+        # -------------------------------------------------
 
         with chart_col1:
             if "worker_prediction" in df.columns:
-                st.subheader("Worker Prediction Counts")
-
-                prediction_counts = (
+                prediction_data = df[
                     df["worker_prediction"]
+                    .fillna("")
+                    .astype(str)
+                    .str.lower()
+                    .isin(
+                        [
+                            "human",
+                            "good_bot",
+                            "bad_bot",
+                            "scanner",
+                            "scanner_like",
+                            "bad_bot_or_scanner",
+                        ]
+                    )
+                ].copy()
+
+                if prediction_data.empty:
+                    st.info(
+                        "No valid supervised predictions are available."
+                    )
+
+                else:
+                    prediction_counts = (
+                        prediction_data["worker_prediction"]
+                        .astype(str)
+                        .str.lower()
+                        .value_counts()
+                        .rename_axis("worker_prediction")
+                        .reset_index(name="count")
+                    )
+
+                    prediction_counts["Prediction"] = (
+                        prediction_counts["worker_prediction"]
+                        .apply(format_prediction_name)
+                    )
+
+                    prediction_chart = (
+                        alt.Chart(prediction_counts)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X(
+                                "Prediction:N",
+                                title="Prediction",
+                                sort="-y",
+                                axis=alt.Axis(
+                                    labelAngle=0,
+                                    labelFontSize=11,
+                                    labelFontWeight="normal",
+                                    labelLimit=120,
+                                    titleFontSize=13,
+                                    titleFontWeight="bold",
+                                ),
+                            ),
+                            y=alt.Y(
+                                "count:Q",
+                                title="Number of Events",
+                                axis=alt.Axis(
+                                    labelFontSize=11,
+                                    titleFontSize=13,
+                                    titleFontWeight="bold",
+                                    tickMinStep=1,
+                                ),
+                            ),
+                            tooltip=[
+                                alt.Tooltip(
+                                    "Prediction:N",
+                                    title="Prediction",
+                                ),
+                                alt.Tooltip(
+                                    "count:Q",
+                                    title="Events",
+                                ),
+                            ],
+                        )
+                        .properties(
+                            height=320,
+                            title=alt.TitleParams(
+                                text="Supervised Predictions",
+                                subtitle="Gradient Boosting",
+                                anchor="middle",
+                                fontSize=18,
+                                fontWeight="bold",
+                                offset=15,
+                            ),
+                        )
+                    )
+
+                    st.altair_chart(
+                        prediction_chart,
+                        use_container_width=True,
+                    )
+
+
+        # -------------------------------------------------
+        # UNSUPERVISED ISOLATION FOREST CHART
+        # -------------------------------------------------
+
+        with chart_col2:
+            if "isolation_prediction" in df.columns:
+                isolation_values = (
+                    df["isolation_prediction"]
                     .fillna("unknown")
                     .astype(str)
                     .str.lower()
-                    .value_counts()
-                    .rename_axis("worker_prediction")
-                    .reset_index(name="count")
                 )
 
-                prediction_counts["Prediction"] = (
-                    prediction_counts["worker_prediction"]
-                    .apply(format_prediction_name)
-                )
+                isolation_data = df[
+                    isolation_values.isin(
+                        [
+                            "normal",
+                            "anomaly",
+                        ]
+                    )
+                ].copy()
 
-                prediction_chart = (
-                    alt.Chart(prediction_counts)
-                    .mark_bar()
-                    .encode(
-                        x=alt.X(
-                            "Prediction:N",
-                            title="Prediction",
-                            sort="-y",
-                            axis=alt.Axis(
-                                labelAngle=0,
-                                labelFontSize=12,
-                                labelFontWeight="normal",
-                                labelLimit=140,
-                                titleFontSize=13,
-                                titleFontWeight="bold",
+                if isolation_data.empty:
+                    st.info(
+                        "No Isolation Forest results are available yet. "
+                        "Generate a new event after deploying the updated Worker."
+                    )
+
+                else:
+                    isolation_counts = (
+                        isolation_data["isolation_prediction"]
+                        .astype(str)
+                        .str.lower()
+                        .value_counts()
+                        .rename_axis("isolation_prediction")
+                        .reset_index(name="count")
+                    )
+
+                    isolation_counts["Isolation Result"] = (
+                        isolation_counts["isolation_prediction"]
+                        .apply(format_isolation_name)
+                    )
+
+                    isolation_chart = (
+                        alt.Chart(isolation_counts)
+                        .mark_bar()
+                        .encode(
+                            x=alt.X(
+                                "Isolation Result:N",
+                                title="Isolation Result",
+                                sort=[
+                                    "Normal",
+                                    "Anomaly",
+                                ],
+                                axis=alt.Axis(
+                                    labelAngle=0,
+                                    labelFontSize=11,
+                                    labelFontWeight="normal",
+                                    titleFontSize=13,
+                                    titleFontWeight="bold",
+                                ),
                             ),
-                        ),
-                        y=alt.Y(
-                            "count:Q",
-                            title="Number of Events",
-                            axis=alt.Axis(
-                                labelFontSize=12,
-                                titleFontSize=13,
-                                titleFontWeight="bold",
-                                tickMinStep=1,
-                            ),
-                        ),
-                        tooltip=[
-                            alt.Tooltip(
-                                "Prediction:N",
-                                title="Prediction",
-                            ),
-                            alt.Tooltip(
+                            y=alt.Y(
                                 "count:Q",
-                                title="Events",
+                                title="Number of Events",
+                                axis=alt.Axis(
+                                    labelFontSize=11,
+                                    titleFontSize=13,
+                                    titleFontWeight="bold",
+                                    tickMinStep=1,
+                                ),
                             ),
-                        ],
+                            tooltip=[
+                                alt.Tooltip(
+                                    "Isolation Result:N",
+                                    title="Result",
+                                ),
+                                alt.Tooltip(
+                                    "count:Q",
+                                    title="Events",
+                                ),
+                            ],
+                        )
+                        .properties(
+                            height=320,
+                            title=alt.TitleParams(
+                                text="Unsupervised Results",
+                                subtitle="Isolation Forest",
+                                anchor="middle",
+                                fontSize=18,
+                                fontWeight="bold",
+                                offset=15,
+                            ),
+                        )
                     )
-                    .properties(
-                        height=320,
+
+                    st.altair_chart(
+                        isolation_chart,
+                        use_container_width=True,
                     )
-                )
 
-                st.altair_chart(
-                    prediction_chart,
-                    use_container_width=True,
-                )
 
-        with chart_col2:
+        # -------------------------------------------------
+        # RULE-BASED RISK CHART
+        # -------------------------------------------------
+
+        with chart_col3:
             if "risk_level" in df.columns:
-                st.subheader("Risk Level Counts")
-
                 risk_counts = (
                     df["risk_level"]
                     .fillna("unknown")
@@ -334,9 +564,8 @@ try:
                             ],
                             axis=alt.Axis(
                                 labelAngle=0,
-                                labelFontSize=12,
+                                labelFontSize=11,
                                 labelFontWeight="normal",
-                                labelLimit=140,
                                 titleFontSize=13,
                                 titleFontWeight="bold",
                             ),
@@ -345,7 +574,7 @@ try:
                             "count:Q",
                             title="Number of Events",
                             axis=alt.Axis(
-                                labelFontSize=12,
+                                labelFontSize=11,
                                 titleFontSize=13,
                                 titleFontWeight="bold",
                                 tickMinStep=1,
@@ -364,6 +593,14 @@ try:
                     )
                     .properties(
                         height=320,
+                        title=alt.TitleParams(
+                            text="Rule-Based Risk Levels",
+                            subtitle="Cloudflare Worker",
+                            anchor="middle",
+                            fontSize=18,
+                            fontWeight="bold",
+                            offset=15,
+                        ),
                     )
                 )
 
@@ -372,11 +609,18 @@ try:
                     use_container_width=True,
                 )
 
+        st.caption(
+            "API errors are excluded from the supervised prediction chart "
+            "so the chart shows only detection classifications."
+        )
+
         st.markdown("---")
 
-        # -----------------------------
-        # Latest Events Table
-        # -----------------------------
+
+        # -------------------------------------------------
+        # LATEST EVENTS TABLE
+        # -------------------------------------------------
+
         st.subheader("Latest Live Telemetry Events")
 
         preferred_columns = [
@@ -396,7 +640,16 @@ try:
             "extension_count",
             "alpn",
             "sni_present",
+
+            # Supervised Gradient Boosting result.
             "worker_prediction",
+
+            # Unsupervised Isolation Forest results.
+            "isolation_prediction",
+            "anomaly_detected",
+            "isolation_decision_score",
+
+            # Rule-based Worker results.
             "risk_score",
             "risk_level",
             "action",
@@ -408,11 +661,64 @@ try:
             if column in df.columns
         ]
 
+        display_df = df[existing_columns].copy()
+
+        if "worker_prediction" in display_df.columns:
+            display_df["worker_prediction"] = (
+                display_df["worker_prediction"]
+                .apply(format_prediction_name)
+            )
+
+        if "isolation_prediction" in display_df.columns:
+            display_df["isolation_prediction"] = (
+                display_df["isolation_prediction"]
+                .apply(format_isolation_name)
+            )
+
+        if "risk_level" in display_df.columns:
+            display_df["risk_level"] = (
+                display_df["risk_level"]
+                .apply(format_risk_name)
+            )
+
+        display_df = display_df.rename(
+            columns={
+                "id": "ID",
+                "timestamp": "Timestamp",
+                "page_path": "Page Path",
+                "interaction_type": "Interaction Type",
+                "scroll_depth_category": "Scroll Depth",
+                "request_interval_seconds": "Request Interval",
+                "user_agent_category": "User-Agent Category",
+                "has_favicon_request": "Favicon Request",
+                "requested_robots_txt": "Robots.txt Requested",
+                "pages_per_session": "Pages per Session",
+                "error_rate": "Error Rate",
+                "tls_version": "TLS Version",
+                "cipher_suite_count": "Cipher Suite Count",
+                "extension_count": "Extension Count",
+                "alpn": "ALPN",
+                "sni_present": "SNI Present",
+                "worker_prediction": "Supervised Prediction",
+                "isolation_prediction": "Isolation Result",
+                "anomaly_detected": "Anomaly Detected",
+                "isolation_decision_score": "Isolation Score",
+                "risk_score": "Risk Score",
+                "risk_level": "Risk Level",
+                "action": "Action",
+            }
+        )
+
         st.dataframe(
-            df[existing_columns],
+            display_df,
             use_container_width=True,
             hide_index=True,
         )
+
+
+        # -------------------------------------------------
+        # RAW EVENT DATA
+        # -------------------------------------------------
 
         with st.expander("Raw Event Data"):
             st.dataframe(
@@ -421,12 +727,14 @@ try:
                 hide_index=True,
             )
 
+
 except requests.exceptions.RequestException as error:
     st.error(
         "Could not load live telemetry data from the Cloudflare Worker."
     )
 
     st.write(error)
+
 
 except ValueError as error:
     st.error(
@@ -436,17 +744,24 @@ except ValueError as error:
     st.write(error)
 
 
-# -----------------------------
-# Model Evaluation Results
-# -----------------------------
+# ---------------------------------------------------------
+# MODEL EVALUATION RESULTS
+# ---------------------------------------------------------
+
 st.markdown("---")
 st.subheader("Model Evaluation Results")
 
 st.write(
     "These metrics come from the offline test split of the synthetic dataset. "
-    "Live events are used for prediction, while evaluation metrics show how the "
-    "trained model performed during testing."
+    "The current accuracy, precision, recall, F1-score, and confusion matrix "
+    "describe the supervised Gradient Boosting classifier. The live Isolation "
+    "Forest normal-versus-anomaly results are shown in the dashboard above."
 )
+
+
+# ---------------------------------------------------------
+# FIND MODEL EVALUATION FILE
+# ---------------------------------------------------------
 
 evaluation_path = (
     Path(__file__).parent
@@ -460,6 +775,11 @@ if not evaluation_path.exists():
         / "model_evaluation.json"
     )
 
+
+# ---------------------------------------------------------
+# DISPLAY MODEL EVALUATION
+# ---------------------------------------------------------
+
 if evaluation_path.exists():
     with open(
         evaluation_path,
@@ -468,11 +788,15 @@ if evaluation_path.exists():
     ) as file:
         evaluation = json.load(file)
 
-    st.markdown("### Overall Performance")
+    st.markdown("### Overall Supervised Model Performance")
 
-    eval_col1, eval_col2, eval_col3, eval_col4, eval_col5 = (
-        st.columns(5)
-    )
+    (
+        eval_col1,
+        eval_col2,
+        eval_col3,
+        eval_col4,
+        eval_col5,
+    ) = st.columns(5)
 
     with eval_col1:
         st.metric(
@@ -504,9 +828,16 @@ if evaluation_path.exists():
             f"{evaluation.get('false_positive_rate', 0) * 100:.2f}%",
         )
 
+
+    # -----------------------------------------------------
+    # MODEL DETAILS
+    # -----------------------------------------------------
+
     st.markdown("### Model Details")
 
-    detail_col1, detail_col2, detail_col3 = st.columns(3)
+    detail_col1, detail_col2, detail_col3, detail_col4 = (
+        st.columns(4)
+    )
 
     with detail_col1:
         st.info(
@@ -520,8 +851,24 @@ if evaluation_path.exists():
 
     with detail_col3:
         st.info(
-            f"Model Family: {evaluation.get('model_family', 'N/A')}"
+            f"Feature Count: {evaluation.get('feature_count', 'N/A')}"
         )
+
+    with detail_col4:
+        st.info(
+            f"scikit-learn: "
+            f"{evaluation.get('scikit_learn_version', 'N/A')}"
+        )
+
+    st.info(
+        f"Model Family: "
+        f"{evaluation.get('model_family', 'N/A')}"
+    )
+
+
+    # -----------------------------------------------------
+    # CLASS-LEVEL METRICS
+    # -----------------------------------------------------
 
     st.markdown("### Class-Level Metrics")
 
@@ -531,9 +878,7 @@ if evaluation_path.exists():
     )
 
     if class_metrics:
-        class_df = pd.DataFrame(
-            class_metrics
-        )
+        class_df = pd.DataFrame(class_metrics)
 
         class_df = class_df.rename(
             columns={
@@ -572,6 +917,11 @@ if evaluation_path.exists():
             "Class-level metrics are not available."
         )
 
+
+    # -----------------------------------------------------
+    # CONFUSION MATRIX
+    # -----------------------------------------------------
+
     st.markdown("### Confusion Matrix")
 
     confusion_matrix = evaluation.get(
@@ -590,7 +940,7 @@ if evaluation_path.exists():
             for label in labels
         ]
 
-        cm_df = pd.DataFrame(
+        confusion_matrix_df = pd.DataFrame(
             confusion_matrix,
             index=[
                 f"Actual: {label}"
@@ -603,27 +953,28 @@ if evaluation_path.exists():
         )
 
         st.dataframe(
-            cm_df,
+            confusion_matrix_df,
             use_container_width=True,
         )
 
     else:
         st.info(
-            "Confusion matrix is not available."
+            "Confusion matrix data is not available."
         )
 
 else:
     st.warning(
-        "Model evaluation file was not found. Make sure "
-        "model_evaluation.json is saved in "
+        "The model evaluation file was not found. "
+        "Make sure model_evaluation.json is saved in "
         "dashboard/dashboard/model_evaluation.json or "
         "dashboard/model_evaluation.json."
     )
 
 
-# -----------------------------
-# Privacy Note
-# -----------------------------
+# ---------------------------------------------------------
+# PRIVACY NOTE
+# ---------------------------------------------------------
+
 st.markdown("---")
 st.subheader("Privacy-Preserving Telemetry Note")
 
