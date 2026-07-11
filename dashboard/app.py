@@ -31,37 +31,6 @@ WORKER_EVENTS_URL = os.getenv(
 )
 
 # Replace this default URL with your actual Cloudflare Pages website.
-MAIN_SITE_URL = os.getenv(
-    "MAIN_SITE_URL",
-    "https://salience-demo.pages.dev/",
-)
-
-
-# ---------------------------------------------------------
-# BACK TO WEBSITE LINK
-# ---------------------------------------------------------
-
-st.markdown(
-    f"""
-    <a
-        href="{MAIN_SITE_URL}"
-        target="_self"
-        style="
-            display: inline-block;
-            padding: 8px 14px;
-            margin-bottom: 12px;
-            border: 1px solid #888;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-        "
-    >
-        ← Back to Main Site
-    </a>
-    """,
-    unsafe_allow_html=True,
-)
-
 
 # ---------------------------------------------------------
 # HEADER
