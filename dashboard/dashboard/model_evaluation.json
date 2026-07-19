@@ -1,11 +1,26 @@
 {
-  "dataset": "Synthetic telemetry dataset",
-  "total_records": 50000,
-  "training_records": 40000,
-  "test_records": 10000,
+  "dataset": "Realistic synthetic telemetry datasets",
+  "development_dataset_file": "synthetic_train.csv",
+  "final_holdout_file": "synthetic_test.csv",
+  "development_records": 40000,
+  "development_training_records": 32000,
+  "internal_validation_records": 8000,
+  "final_holdout_records": 10000,
+  "development_class_counts": {
+    "scanner": 10000,
+    "human": 10000,
+    "good_bot": 10000,
+    "bad_bot": 10000
+  },
+  "final_holdout_class_counts": {
+    "human": 7000,
+    "good_bot": 1500,
+    "bad_bot": 1000,
+    "scanner": 500
+  },
   "feature_count": 14,
   "features": [
-    "page_path",
+    "page_category",
     "interaction_type",
     "scroll_depth_category",
     "request_interval_seconds",
@@ -20,38 +35,270 @@
     "alpn",
     "sni_present"
   ],
-  "model_family": "Rule-based baseline + Isolation Forest + Gradient Boosting",
-  "deployed_model": "Gradient Boosting supervised classifier",
+  "random_state": 42,
   "scikit_learn_version": "1.3.2",
-  "accuracy": 1.0,
-  "weighted_precision": 1.0,
-  "weighted_recall": 1.0,
-  "weighted_f1": 1.0,
-  "false_positive_rate": 0.0,
+  "gradient_boosting": {
+    "model_name": "Gradient Boosting supervised classifier",
+    "internal_validation": {
+      "accuracy": 0.9184,
+      "balanced_accuracy": 0.9184,
+      "macro_precision": 0.9182,
+      "macro_recall": 0.9184,
+      "macro_f1": 0.9182,
+      "weighted_precision": 0.9182,
+      "weighted_recall": 0.9184,
+      "weighted_f1": 0.9182,
+      "false_positive_rate": 0.027,
+      "class_metrics": [
+        {
+          "class": "bad_bot",
+          "precision": 0.8568,
+          "recall": 0.8525,
+          "f1_score": 0.8546,
+          "support": 2000
+        },
+        {
+          "class": "good_bot",
+          "precision": 0.9578,
+          "recall": 0.953,
+          "f1_score": 0.9554,
+          "support": 2000
+        },
+        {
+          "class": "human",
+          "precision": 0.9389,
+          "recall": 0.9675,
+          "f1_score": 0.953,
+          "support": 2000
+        },
+        {
+          "class": "scanner",
+          "precision": 0.9193,
+          "recall": 0.9005,
+          "f1_score": 0.9098,
+          "support": 2000
+        }
+      ],
+      "confusion_matrix_labels": [
+        "bad_bot",
+        "good_bot",
+        "human",
+        "scanner"
+      ],
+      "confusion_matrix": [
+        [
+          1705,
+          54,
+          88,
+          153
+        ],
+        [
+          59,
+          1906,
+          32,
+          3
+        ],
+        [
+          44,
+          19,
+          1935,
+          2
+        ],
+        [
+          182,
+          11,
+          6,
+          1801
+        ]
+      ]
+    },
+    "final_holdout": {
+      "accuracy": 0.9488,
+      "balanced_accuracy": 0.9109,
+      "macro_precision": 0.8844,
+      "macro_recall": 0.9109,
+      "macro_f1": 0.8971,
+      "weighted_precision": 0.9511,
+      "weighted_recall": 0.9488,
+      "weighted_f1": 0.9497,
+      "false_positive_rate": 0.0239,
+      "class_metrics": [
+        {
+          "class": "bad_bot",
+          "precision": 0.7768,
+          "recall": 0.842,
+          "f1_score": 0.8081,
+          "support": 1000
+        },
+        {
+          "class": "good_bot",
+          "precision": 0.9294,
+          "recall": 0.9393,
+          "f1_score": 0.9344,
+          "support": 1500
+        },
+        {
+          "class": "human",
+          "precision": 0.9884,
+          "recall": 0.9701,
+          "f1_score": 0.9792,
+          "support": 7000
+        },
+        {
+          "class": "scanner",
+          "precision": 0.8431,
+          "recall": 0.892,
+          "f1_score": 0.8669,
+          "support": 500
+        }
+      ],
+      "confusion_matrix_labels": [
+        "bad_bot",
+        "good_bot",
+        "human",
+        "scanner"
+      ],
+      "confusion_matrix": [
+        [
+          842,
+          37,
+          49,
+          72
+        ],
+        [
+          58,
+          1409,
+          28,
+          5
+        ],
+        [
+          134,
+          69,
+          6791,
+          6
+        ],
+        [
+          50,
+          1,
+          3,
+          446
+        ]
+      ]
+    }
+  },
+  "isolation_forest": {
+    "model_name": "Isolation Forest anomaly detector",
+    "training_records": 16000,
+    "threshold_calibration_records": 4000,
+    "training_labels_used_for_selection": [
+      "good_bot",
+      "human"
+    ],
+    "labels_passed_to_fit": false,
+    "threshold_method": "benign_validation_quantile",
+    "target_benign_false_positive_rate": 0.05,
+    "anomaly_threshold": -0.05412216693302041,
+    "final_holdout": {
+      "accuracy": 0.8417,
+      "balanced_accuracy": 0.6545,
+      "anomaly_precision": 0.636,
+      "anomaly_recall": 0.3557,
+      "anomaly_f1": 0.4562,
+      "false_positive_rate": 0.0467,
+      "false_negative_rate": 0.6443,
+      "predicted_anomaly_rate": 0.1044,
+      "ground_truth_anomaly_rate": 0.1867,
+      "anomaly_score_summary": {
+        "minimum": -0.15906,
+        "mean": 0.020191,
+        "maximum": 0.100494
+      },
+      "confusion_matrix_labels": [
+        "normal",
+        "anomaly"
+      ],
+      "confusion_matrix": [
+        [
+          7753,
+          380
+        ],
+        [
+          1203,
+          664
+        ]
+      ],
+      "confusion_matrix_counts": {
+        "true_negative": 7753,
+        "false_positive": 380,
+        "false_negative": 1203,
+        "true_positive": 664
+      },
+      "per_class_anomaly_rates": [
+        {
+          "class": "bad_bot",
+          "records": 1000,
+          "predicted_anomaly_rate": 0.342,
+          "ground_truth_anomaly_rate": 0.904
+        },
+        {
+          "class": "good_bot",
+          "records": 1500,
+          "predicted_anomaly_rate": 0.0573,
+          "ground_truth_anomaly_rate": 0.0913
+        },
+        {
+          "class": "human",
+          "records": 7000,
+          "predicted_anomaly_rate": 0.042,
+          "ground_truth_anomaly_rate": 0.0476
+        },
+        {
+          "class": "scanner",
+          "records": 500,
+          "predicted_anomaly_rate": 0.644,
+          "ground_truth_anomaly_rate": 0.986
+        }
+      ]
+    }
+  },
+  "total_records": 10000,
+  "training_records": 32000,
+  "test_records": 10000,
+  "model_family": "Gradient Boosting + Isolation Forest",
+  "deployed_model": "Gradient Boosting supervised classifier",
+  "accuracy": 0.9488,
+  "weighted_precision": 0.9511,
+  "weighted_recall": 0.9488,
+  "weighted_f1": 0.9497,
+  "false_positive_rate": 0.0239,
   "class_metrics": [
     {
       "class": "bad_bot",
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1_score": 1.0
+      "precision": 0.7768,
+      "recall": 0.842,
+      "f1_score": 0.8081,
+      "support": 1000
     },
     {
       "class": "good_bot",
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1_score": 1.0
+      "precision": 0.9294,
+      "recall": 0.9393,
+      "f1_score": 0.9344,
+      "support": 1500
     },
     {
       "class": "human",
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1_score": 1.0
+      "precision": 0.9884,
+      "recall": 0.9701,
+      "f1_score": 0.9792,
+      "support": 7000
     },
     {
       "class": "scanner",
-      "precision": 1.0,
-      "recall": 1.0,
-      "f1_score": 1.0
+      "precision": 0.8431,
+      "recall": 0.892,
+      "f1_score": 0.8669,
+      "support": 500
     }
   ],
   "confusion_matrix_labels": [
@@ -62,28 +309,28 @@
   ],
   "confusion_matrix": [
     [
-      2500,
-      0,
-      0,
-      0
+      842,
+      37,
+      49,
+      72
     ],
     [
-      0,
-      2500,
-      0,
-      0
+      58,
+      1409,
+      28,
+      5
     ],
     [
-      0,
-      0,
-      2500,
-      0
+      134,
+      69,
+      6791,
+      6
     ],
     [
-      0,
-      0,
-      0,
-      2500
+      50,
+      1,
+      3,
+      446
     ]
   ]
 }

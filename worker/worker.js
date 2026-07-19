@@ -1,49 +1,31 @@
-// Azure ML API endpoint.
-// This API runs both Gradient Boosting and Isolation Forest.
+// Azure API that runs Gradient Boosting and Isolation Forest.
 const AZURE_ML_API_URL =
   "https://salience-bot-ml-api-dyhkdcapcbg2grc9.canadacentral-01.azurewebsites.net/predict";
 
-export default {
-  async fetch(request, env, ctx) {
-    // ---------------------------------------------------------
-    // CORS PREFLIGHT
-    // ---------------------------------------------------------
 
+export default {
+  async fetch(request, env) {
     if (request.method === "OPTIONS") {
-      return new Response(null, {
-        headers: corsHeaders(),
-      });
+      return new Response(null, { headers: corsHeaders() });
     }
 
     const url = new URL(request.url);
 
-
-    // ---------------------------------------------------------
-    // GET LIVE EVENTS FOR THE DASHBOARD
-    // ---------------------------------------------------------
-
-    if (
-      request.method === "GET" &&
-      url.pathname === "/events"
-    ) {
+    // Return the latest telemetry events for the dashboard.
+    if (request.method === "GET" && url.pathname === "/events") {
       try {
-        const result = await env.DB.prepare(
-          `
+        const result = await env.DB.prepare(`
           SELECT *
           FROM telemetry_events
           ORDER BY id DESC
           LIMIT 100
-          `
-        ).all();
+        `).all();
 
-        return jsonResponse({
-          events: result.results || [],
-        });
-
+        return jsonResponse({ events: result.results || [] });
       } catch (error) {
         return jsonResponse(
           {
-            error: "Could not read events from D1 database.",
+            error: "Could not read events from the D1 database.",
             details: String(error),
           },
           500
@@ -51,20 +33,12 @@ export default {
       }
     }
 
-
-    // ---------------------------------------------------------
-    // WORKER STATUS ENDPOINT
-    // ---------------------------------------------------------
-
-    if (
-      request.method === "GET" &&
-      url.pathname === "/"
-    ) {
+    // Basic Worker status endpoint.
+    if (request.method === "GET" && url.pathname === "/") {
       return jsonResponse({
         status: "running",
         service: "Salience Telemetry Worker",
-        message:
-          "Use POST / for telemetry events or GET /events for dashboard data.",
+        message: "Use POST / for telemetry or GET /events for dashboard data.",
         models: {
           supervised: "Gradient Boosting",
           unsupervised: "Isolation Forest",
@@ -72,30 +46,14 @@ export default {
       });
     }
 
-
-    // ---------------------------------------------------------
-    // ONLY ALLOW POST FOR TELEMETRY
-    // ---------------------------------------------------------
-
     if (request.method !== "POST") {
-      return jsonResponse(
-        {
-          error: "Method not allowed.",
-        },
-        405
-      );
+      return jsonResponse({ error: "Method not allowed." }, 405);
     }
-
-
-    // ---------------------------------------------------------
-    // READ REQUEST JSON
-    // ---------------------------------------------------------
 
     let data;
 
     try {
       data = await request.json();
-
     } catch (error) {
       return jsonResponse(
         {
@@ -106,226 +64,115 @@ export default {
       );
     }
 
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return jsonResponse(
+        {
+          error: "The JSON body must be an object.",
+        },
+        400
+      );
+    }
 
-    // ---------------------------------------------------------
-    // MINIMIZED TELEMETRY SCHEMA
-    // ---------------------------------------------------------
-
+    // Only the minimized 14-feature schema is sent to the ML API.
     const telemetry = {
-      page_path:
-        data.page_path || "/",
-
-      interaction_type:
-        data.interaction_type || "unknown",
-
-      scroll_depth_category:
-        data.scroll_depth_category || "unknown",
-
-      request_interval_seconds:
-        Number(data.request_interval_seconds || 0),
-
-      user_agent_category:
-        data.user_agent_category || "unknown",
-
-      has_favicon_request:
-        Number(data.has_favicon_request || 0),
-
-      requested_robots_txt:
-        Number(data.requested_robots_txt || 0),
-
-      pages_per_session:
-        Number(data.pages_per_session || 0),
-
-      error_rate:
-        Number(data.error_rate || 0),
-
-      tls_version:
-        data.tls_version || "unknown",
-
-      cipher_suite_count:
-        Number(data.cipher_suite_count || 0),
-
-      extension_count:
-        Number(data.extension_count || 0),
-
-      alpn:
-        data.alpn || "unknown",
-
-      sni_present:
-        Number(data.sni_present || 0),
+      page_category: data.page_category || "unknown_page",
+      interaction_type: data.interaction_type || "page_view",
+      scroll_depth_category: data.scroll_depth_category || "medium",
+      request_interval_seconds: numberOrDefault(
+        data.request_interval_seconds,
+        10
+      ),
+      user_agent_category: data.user_agent_category || "unknown",
+      has_favicon_request: numberOrDefault(data.has_favicon_request, 1),
+      requested_robots_txt: numberOrDefault(data.requested_robots_txt, 0),
+      pages_per_session: numberOrDefault(data.pages_per_session, 3),
+      error_rate: numberOrDefault(data.error_rate, 0),
+      tls_version: data.tls_version || "TLS1.3",
+      cipher_suite_count: numberOrDefault(data.cipher_suite_count, 15),
+      extension_count: numberOrDefault(data.extension_count, 12),
+      alpn: data.alpn || "h2",
+      sni_present: numberOrDefault(data.sni_present, 1),
     };
 
-
-    // ---------------------------------------------------------
-    // CALL THE AZURE DUAL-MODEL API
-    // ---------------------------------------------------------
-
-    let azureResult = {};
+    let azureResult;
 
     try {
-      const azureResponse = await fetch(
-        AZURE_ML_API_URL,
-        {
-          method: "POST",
+      const azureResponse = await fetch(AZURE_ML_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(telemetry),
+      });
 
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify(telemetry),
-        }
-      );
-
-      azureResult = await azureResponse.json();
+      azureResult = await readJsonResponse(azureResponse);
 
       if (!azureResponse.ok) {
         throw new Error(
           azureResult.error ||
-          `Azure API returned HTTP ${azureResponse.status}`
+            azureResult.details ||
+            `Azure API returned HTTP ${azureResponse.status}`
         );
       }
-
     } catch (error) {
       azureResult = {
         ml_prediction: "azure_api_error",
         confidence: 0,
-
+        class_probabilities: {},
         isolation_prediction: "unknown",
         anomaly_detected: false,
         isolation_decision_score: 0,
-
+        isolation_threshold: 0,
         error: String(error),
       };
     }
-
-
-    // ---------------------------------------------------------
-    // READ GRADIENT BOOSTING RESULT
-    // ---------------------------------------------------------
 
     const workerPrediction =
       azureResult.ml_prediction ||
       azureResult.prediction ||
       "unknown";
 
-    const confidence = Number(
-      azureResult.confidence ??
-      azureResult.probability ??
+    const confidence = numberOrDefault(
+      azureResult.confidence ?? azureResult.probability,
       0
     );
 
-
-    // ---------------------------------------------------------
-    // READ ISOLATION FOREST RESULT
-    // ---------------------------------------------------------
+    const classProbabilities =
+      azureResult.class_probabilities &&
+      typeof azureResult.class_probabilities === "object"
+        ? azureResult.class_probabilities
+        : {};
 
     const isolationPrediction =
-      azureResult.isolation_prediction ||
-      "unknown";
+      azureResult.isolation_prediction || "unknown";
 
-    const anomalyDetected =
-      azureResult.anomaly_detected === true ||
-      azureResult.anomaly_detected === 1 ||
-      azureResult.anomaly_detected === "true";
-
-    const isolationDecisionScore = Number(
-      azureResult.isolation_decision_score ?? 0
+    const anomalyDetected = toBoolean(
+      azureResult.anomaly_detected
     );
 
-
-    // ---------------------------------------------------------
-    // RULE-BASED RISK SCORE
-    // ---------------------------------------------------------
-
-    let riskScore = 0;
-    let riskLevel = "low";
-    let action = "allow";
-
-
-    // High-risk supervised classifications.
-    if (
-      workerPrediction === "bad_bot" ||
-      workerPrediction === "scanner" ||
-      workerPrediction === "scanner_like" ||
-      workerPrediction === "bad_bot_or_scanner"
-    ) {
-      riskScore =
-        confidence <= 1
-          ? Math.round(confidence * 100)
-          : Math.round(confidence);
-
-      riskLevel = "high";
-      action = "flag_for_review";
-    }
-
-
-    // Known good bot.
-    else if (
-      workerPrediction === "good_bot"
-    ) {
-      riskScore = 10;
-      riskLevel = "low";
-      action = "allow_with_monitoring";
-    }
-
-
-    // Human or benign traffic.
-    else if (
-      workerPrediction === "human" ||
-      workerPrediction === "human_or_benign" ||
-      workerPrediction === "human_or_good_bot"
-    ) {
-      riskScore = 0;
-      riskLevel = "low";
-      action = "allow";
-    }
-
-
-    // Azure error or unknown prediction.
-    else {
-      riskScore = 50;
-      riskLevel = "medium";
-      action = "monitor";
-    }
-
-
-    // Isolation Forest adds anomaly context.
-    // This does not replace the supervised classification.
-    if (
-      anomalyDetected &&
-      workerPrediction !== "azure_api_error"
-    ) {
-      if (riskScore < 50) {
-        riskScore = 50;
-      }
-
-      if (riskLevel === "low") {
-        riskLevel = "medium";
-      }
-
-      if (action === "allow") {
-        action = "monitor_anomaly";
-      }
-    }
-
-
-    // Keep risk score inside the range 0–100.
-    riskScore = Math.max(
-      0,
-      Math.min(100, riskScore)
+    const isolationDecisionScore = numberOrDefault(
+      azureResult.isolation_decision_score,
+      0
     );
 
+    const isolationThreshold = numberOrDefault(
+      azureResult.isolation_threshold,
+      0
+    );
 
-    // ---------------------------------------------------------
-    // SAVE EVENT INTO CLOUDFLARE D1
-    // ---------------------------------------------------------
+    const riskAnalysis = calculateRisk(
+      workerPrediction,
+      confidence,
+      anomalyDetected
+    );
+
+    const timestamp = new Date().toISOString();
 
     try {
-      await env.DB.prepare(
-        `
+      await env.DB.prepare(`
         INSERT INTO telemetry_events (
           timestamp,
-          page_path,
+          page_category,
           interaction_type,
           scroll_depth_category,
           request_interval_seconds,
@@ -351,12 +198,10 @@ export default {
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
         )
-        `
-      )
+      `)
         .bind(
-          new Date().toISOString(),
-
-          telemetry.page_path,
+          timestamp,
+          telemetry.page_category,
           telemetry.interaction_type,
           telemetry.scroll_depth_category,
           telemetry.request_interval_seconds,
@@ -370,142 +215,161 @@ export default {
           telemetry.extension_count,
           telemetry.alpn,
           telemetry.sni_present,
-
           workerPrediction,
           isolationPrediction,
           anomalyDetected ? 1 : 0,
           isolationDecisionScore,
-
-          riskScore,
-          riskLevel,
-          action
+          riskAnalysis.risk_score,
+          riskAnalysis.risk_level,
+          riskAnalysis.action
         )
         .run();
-
     } catch (error) {
       return jsonResponse(
         {
-          error: "Could not save event to D1 database.",
+          error: "Could not save the event to the D1 database.",
           details: String(error),
-
-          supervised_prediction:
-            workerPrediction,
-
-          supervised_confidence:
-            confidence,
-
-          isolation_prediction:
-            isolationPrediction,
-
-          anomaly_detected:
-            anomalyDetected,
-
-          isolation_decision_score:
-            isolationDecisionScore,
-
-          received_minimized_telemetry:
-            telemetry,
+          supervised_prediction: workerPrediction,
+          supervised_confidence: confidence,
+          isolation_prediction: isolationPrediction,
+          anomaly_detected: anomalyDetected,
+          isolation_decision_score: isolationDecisionScore,
+          isolation_threshold: isolationThreshold,
+          received_minimized_telemetry: telemetry,
         },
         500
       );
     }
 
-
-    // ---------------------------------------------------------
-    // RETURN WORKER RESPONSE
-    // ---------------------------------------------------------
-
     return jsonResponse({
       supervised: {
-        model:
-          "Gradient Boosting supervised classifier",
-
-        prediction:
-          workerPrediction,
-
-        confidence:
-          confidence,
-
-        class_probabilities:
-          azureResult.class_probabilities || {},
+        model: "Gradient Boosting supervised classifier",
+        prediction: workerPrediction,
+        confidence,
+        class_probabilities: classProbabilities,
       },
 
       unsupervised: {
-        model:
-          "Isolation Forest unsupervised anomaly detector",
-
-        prediction:
-          isolationPrediction,
-
-        anomaly_detected:
-          anomalyDetected,
-
-        decision_score:
-          isolationDecisionScore,
+        model: "Isolation Forest anomaly detector",
+        prediction: isolationPrediction,
+        anomaly_detected: anomalyDetected,
+        decision_score: isolationDecisionScore,
+        threshold: isolationThreshold,
       },
 
-      risk_analysis: {
-        risk_score:
-          riskScore,
-
-        risk_level:
-          riskLevel,
-
-        action:
-          action,
-      },
-
+      risk_analysis: riskAnalysis,
       saved_to_database: true,
-
-      received_minimized_telemetry:
-        telemetry,
+      received_minimized_telemetry: telemetry,
 
       privacy_note:
-        "Only minimized telemetry is processed. No passwords, cookies, tokens, names, emails, private content, exact location, or raw IP addresses are collected.",
+        "Only minimized telemetry is processed. No passwords, cookies, " +
+        "tokens, names, emails, private content, exact location, or raw " +
+        "IP addresses are collected.",
 
-      timestamp:
-        new Date().toISOString(),
+      timestamp,
     });
   },
 };
 
 
-// ---------------------------------------------------------
-// JSON RESPONSE HELPER
-// ---------------------------------------------------------
+// Calculate the final risk level using both model results.
+function calculateRisk(prediction, confidence, anomalyDetected) {
+  const confidencePercent =
+    confidence <= 1
+      ? Math.round(confidence * 100)
+      : Math.round(confidence);
 
-function jsonResponse(
-  data,
-  status = 200
-) {
-  return new Response(
-    JSON.stringify(
-      data,
-      null,
-      2
-    ),
-    {
-      status: status,
+  let riskScore;
+  let riskLevel;
+  let action;
 
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders(),
-      },
+  if (prediction === "bad_bot" || prediction === "scanner") {
+    riskScore = Math.max(70, confidencePercent);
+    riskLevel = "high";
+    action = "flag_for_review";
+  } else if (prediction === "good_bot") {
+    riskScore = 10;
+    riskLevel = "low";
+    action = "allow_with_monitoring";
+  } else if (prediction === "human") {
+    riskScore = 0;
+    riskLevel = "low";
+    action = "allow";
+  } else {
+    riskScore = 50;
+    riskLevel = "medium";
+    action = "monitor";
+  }
+
+  // An anomaly increases risk but does not replace the supervised class.
+  if (anomalyDetected && prediction !== "azure_api_error") {
+    riskScore = Math.max(riskScore, 50);
+
+    if (riskLevel === "low") {
+      riskLevel = "medium";
     }
-  );
+
+    if (action === "allow" || action === "allow_with_monitoring") {
+      action = "monitor_anomaly";
+    }
+  }
+
+  return {
+    risk_score: Math.max(0, Math.min(100, riskScore)),
+    risk_level: riskLevel,
+    action,
+  };
 }
 
 
-// ---------------------------------------------------------
-// CORS HEADERS
-// ---------------------------------------------------------
+// Preserve valid zero values while applying defaults to invalid numbers.
+function numberOrDefault(value, defaultValue) {
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+
+  const number = Number(value);
+  return Number.isFinite(number) ? number : defaultValue;
+}
+
+
+function toBoolean(value) {
+  return value === true || value === 1 || value === "true";
+}
+
+
+async function readJsonResponse(response) {
+  const responseText = await response.text();
+
+  if (!responseText) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    throw new Error(
+      `Azure API returned a non-JSON response with HTTP ${response.status}.`
+    );
+  }
+}
+
+
+function jsonResponse(data, status = 200) {
+  return new Response(JSON.stringify(data, null, 2), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders(),
+    },
+  });
+}
+
 
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods":
-      "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers":
-      "Content-Type",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
   };
 }
