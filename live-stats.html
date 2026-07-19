@@ -27,17 +27,37 @@
     <section class="hero">
       <div class="container">
         <p class="eyebrow">Live Telemetry Demo</p>
-        <h1>Live Classification and Dashboard Reporting</h1>
+
+        <h1>Live Classification, Anomaly Detection, and Dashboard Reporting</h1>
+
         <p class="hero-text">
-          Send controlled test events to the Cloudflare Worker and view recent classifications,
-          risk scores, and model evaluation evidence in the Streamlit Dashboard.
+          Send controlled test events to the Cloudflare Worker and review Gradient Boosting
+          classifications, Isolation Forest anomaly results, final Worker risk decisions,
+          and offline model evaluation evidence in the Streamlit Dashboard.
         </p>
 
         <div class="hero-actions">
           <a class="button primary" href="index.html">Overview</a>
+
           <a class="button secondary" href="pipeline.html">Pipeline</a>
-          <a class="button-link" href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/" target="_blank" rel="noopener noreferrer">Dashboard</a>
-          <a class="button-link" href="https://github.com/pyth2021/Salience-demo" target="_blank" rel="noopener noreferrer">GitHub</a>
+
+          <a
+            class="button-link"
+            href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Dashboard
+          </a>
+
+          <a
+            class="button-link"
+            href="https://github.com/pyth2021/Salience-demo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
         </div>
       </div>
     </section>
@@ -45,24 +65,40 @@
     <section class="section">
       <div class="container">
         <h2>Live Telemetry Test</h2>
+
         <p class="section-lead">
-          The buttons below generate controlled project-demo events. They send minimized telemetry
-          to the live Cloudflare Worker endpoint and are not directed at third-party websites.
+          The buttons below generate controlled project-demo events. Each event sends
+          minimized telemetry to the Cloudflare Worker. The Worker validates the event,
+          forwards the approved 14-feature schema to the Azure Flask prediction API,
+          applies the final risk logic, and stores the result in Cloudflare D1.
         </p>
 
         <div class="button-row">
-          <button id="humanButton" class="secondary">Send Human Test</button>
-          <button id="goodBotButton">Send Good Bot Test</button>
-          <button id="badBotButton" class="warning">Send Bad Bot Test</button>
-          <button id="scannerButton" class="danger">Send Scanner Test</button>
+          <button id="humanButton" class="secondary">
+            Send Human Test
+          </button>
+
+          <button id="goodBotButton">
+            Send Good Bot Test
+          </button>
+
+          <button id="badBotButton" class="warning">
+            Send Bad Bot Test
+          </button>
+
+          <button id="scannerButton" class="danger">
+            Send Scanner Test
+          </button>
         </div>
 
         <h3>Beacon Result</h3>
+
         <pre id="result">No beacon event sent yet.</pre>
 
         <p class="small">
-          Privacy note: test events do not include raw IP addresses, names, emails, passwords,
-          cookies, authentication tokens, private content, exact location, or invasive browser fingerprinting.
+          Privacy note: test events do not include raw IP addresses, names, emails,
+          passwords, cookies, authentication tokens, private content, exact location,
+          full URLs, or invasive browser fingerprinting.
         </p>
       </div>
     </section>
@@ -70,33 +106,60 @@
     <section class="section">
       <div class="container">
         <h2>Dashboard and Model Evaluation</h2>
+
         <p class="section-lead">
-          The Streamlit Dashboard is the reporting layer for live telemetry, recent predictions,
-          and model evaluation evidence.
+          The Streamlit Dashboard is the reporting layer for recently stored telemetry,
+          supervised classifications, unsupervised anomaly results, Worker risk decisions,
+          and offline model evaluation evidence. The current prototype provides advisory
+          actions and does not automatically block traffic.
         </p>
 
         <div class="grid-3">
           <div class="card">
-            <h3>Top Summary</h3>
-            <p>Total events, high-risk events, average risk score, prediction counts, and risk-level counts.</p>
+            <h3>Live Prototype Summary</h3>
+
+            <p>
+              Recent events loaded, high-risk events, average risk score, detected
+              anomalies, and unique page categories from the latest Worker event window.
+            </p>
           </div>
 
           <div class="card">
-            <h3>Live Classification Table</h3>
-            <p>Recent events, interaction type, prediction, risk score, risk level, action, and technical feature summary.</p>
+            <h3>Live Detection Results</h3>
+
+            <p>
+              Gradient Boosting traffic classifications, Isolation Forest anomaly results,
+              final Worker risk levels, and detailed telemetry records stored in D1.
+            </p>
           </div>
 
           <div class="card">
-            <h3>Model Evaluation</h3>
-            <p>Precision, recall, F1-score, false positive rate, and confusion matrix evidence for detection performance.</p>
+            <h3>Offline Model Evaluation</h3>
+
+            <p>
+              Separate holdout evaluation results for Gradient Boosting and Isolation
+              Forest, including accuracy, balanced accuracy, precision, recall, F1-score,
+              false-positive rates, anomaly metrics, and confusion matrices.
+            </p>
           </div>
         </div>
 
         <div class="button-row">
-          <a class="button-link" href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/" target="_blank" rel="noopener noreferrer">
+          <a
+            class="button-link"
+            href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Open Streamlit Dashboard
           </a>
-          <a class="button-link" href="https://salience-beacon-worker.mahin0710.workers.dev/events" target="_blank" rel="noopener noreferrer">
+
+          <a
+            class="button-link"
+            href="https://salience-beacon-worker.mahin0710.workers.dev/events"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             View Worker Events API
           </a>
         </div>
@@ -106,6 +169,7 @@
     <section class="section">
       <div class="container">
         <h2>Live Deployment Links</h2>
+
         <table>
           <thead>
             <tr>
@@ -113,11 +177,17 @@
               <th>Live URL</th>
             </tr>
           </thead>
+
           <tbody>
             <tr>
               <td>Website</td>
+
               <td>
-                <a href="https://salience-demo.pages.dev" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://salience-demo.pages.dev"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   https://salience-demo.pages.dev
                 </a>
               </td>
@@ -125,8 +195,13 @@
 
             <tr>
               <td>Worker Events API</td>
+
               <td>
-                <a href="https://salience-beacon-worker.mahin0710.workers.dev/events" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://salience-beacon-worker.mahin0710.workers.dev/events"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   https://salience-beacon-worker.mahin0710.workers.dev/events
                 </a>
               </td>
@@ -134,8 +209,13 @@
 
             <tr>
               <td>Dashboard</td>
+
               <td>
-                <a href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/
                 </a>
               </td>
@@ -143,8 +223,13 @@
 
             <tr>
               <td>GitHub Repository</td>
+
               <td>
-                <a href="https://github.com/pyth2021/Salience-demo" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://github.com/pyth2021/Salience-demo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   https://github.com/pyth2021/Salience-demo
                 </a>
               </td>
@@ -157,7 +242,9 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Salience Enterprises Inc. capstone implementation · Live demo and dashboard reporting</p>
+      <p>
+        Salience Enterprises Inc. capstone implementation · Live demo and dashboard reporting
+      </p>
     </div>
   </footer>
 
