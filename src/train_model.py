@@ -34,8 +34,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRAIN_DATA_FILE = PROJECT_ROOT / "data" / "raw" / "synthetic_train.csv"
 FINAL_TEST_DATA_FILE = PROJECT_ROOT / "data" / "raw" / "synthetic_test.csv"
 
-# Each model is saved once in the project-level models directory.
-MODEL_DIRECTORY = PROJECT_ROOT / "models"
+# Save each trained model directly in the ML API models directory.
+# This keeps one authoritative copy and avoids a duplicate root-level models folder.
+MODEL_DIRECTORY = PROJECT_ROOT / "ml_api" / "models"
 EVALUATION_FILE = PROJECT_ROOT / "dashboard" / "dashboard" / "model_evaluation.json"
 
 FEATURES = [
@@ -404,7 +405,7 @@ def build_isolation_metrics(
 # -----------------------------------------------------------------------------
 
 def save_model_package(package: dict[str, Any], filename: str) -> Path:
-    """Save one model package in the project models directory."""
+    """Save one model package in the ML API models directory."""
     MODEL_DIRECTORY.mkdir(parents=True, exist_ok=True)
     output_file = MODEL_DIRECTORY / filename
 

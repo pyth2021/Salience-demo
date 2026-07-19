@@ -18,8 +18,7 @@ app = Flask(__name__)
 # -----------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = BASE_DIR.parent
-MODEL_DIRECTORY = PROJECT_ROOT / "models"
+MODEL_DIRECTORY = BASE_DIR / "models"
 
 GRADIENT_MODEL_PATH = MODEL_DIRECTORY / "gradient_boosting_model.pkl"
 ISOLATION_MODEL_PATH = MODEL_DIRECTORY / "isolation_forest_model.pkl"
