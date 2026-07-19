@@ -26,18 +26,36 @@
   <main>
     <section class="hero">
       <div class="container">
-        <p class="eyebrow">Live Architecture</p>
+        <p class="eyebrow">Implemented Architecture</p>
         <h1>Telemetry Detection Pipeline</h1>
+
         <p class="hero-text">
-          The implemented flow connects the Cloudflare Pages website, beacon.js,
-          Cloudflare Worker, Azure /predict ML API, Cloudflare D1, and Streamlit Dashboard.
+          The implemented pipeline connects the Cloudflare Pages website,
+          <code>beacon.js</code>, Cloudflare Worker, Azure-hosted Flask
+          <code>/predict</code> API, Cloudflare D1, and the Streamlit Dashboard.
         </p>
 
         <div class="hero-actions">
           <a class="button primary" href="index.html">Overview</a>
           <a class="button secondary" href="live-stats.html">Live Stats</a>
-          <a class="button-link" href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/" target="_blank" rel="noopener noreferrer">Dashboard</a>
-          <a class="button-link" href="https://github.com/pyth2021/Salience-demo" target="_blank" rel="noopener noreferrer">GitHub</a>
+
+          <a
+            class="button-link"
+            href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Dashboard
+          </a>
+
+          <a
+            class="button-link"
+            href="https://github.com/pyth2021/Salience-demo"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>
         </div>
       </div>
     </section>
@@ -45,25 +63,141 @@
     <section class="section">
       <div class="container">
         <h2>High-Level Process Flow</h2>
+
         <p class="section-lead">
-          Telemetry is stripped of unnecessary personal data at the edge worker endpoint before being transformed, scored, stored, and reported.
+          The browser beacon collects only approved, minimized telemetry.
+          The Cloudflare Worker validates the event, requests predictions
+          from the Azure ML API, applies rule-based decision logic, and stores
+          the complete assessment in Cloudflare D1.
         </p>
 
         <div class="flow">
-          <div class="flow-step"><strong>1. Static Website</strong><span>Visitor interacts with the Cloudflare Pages site.</span></div>
-          <div class="flow-step"><strong>2. beacon.js</strong><span>Browser sends limited telemetry events.</span></div>
-          <div class="flow-step"><strong>3. Cloudflare Worker</strong><span>Receives events and applies edge rules.</span></div>
-          <div class="flow-step"><strong>4. Privacy Validation</strong><span>PII is avoided before scoring and storage.</span></div>
-          <div class="flow-step"><strong>5. Azure /predict</strong><span>ML API returns prediction and confidence.</span></div>
-          <div class="flow-step"><strong>6. Cloudflare D1</strong><span>Stores processed event summaries and scores.</span></div>
-          <div class="flow-step"><strong>7. Streamlit Dashboard</strong><span>Reports classifications, risk levels, and evaluation evidence.</span></div>
+          <div class="flow-step">
+            <strong>1. Static Website</strong>
+            <span>
+              A visitor interacts with the website hosted on Cloudflare Pages.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>2. JavaScript Beacon</strong>
+            <span>
+              <code>beacon.js</code> collects limited privacy-safe telemetry,
+              including timing, interaction, session, browser, and coarse
+              connection signals.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>3. Cloudflare Worker Intake</strong>
+            <span>
+              The Worker receives the telemetry event, validates the payload,
+              filters unapproved fields, and prepares the model feature vector.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>4. Rule-Based Signal Evaluation</strong>
+            <span>
+              Worker rules evaluate obvious suspicious patterns such as rapid
+              requests, scanner-like activity, unusual paths, and elevated
+              error behaviour.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>5. Worker to Azure ML API</strong>
+            <span>
+              The Worker sends the approved feature vector to the Azure-hosted
+              Flask <code>/predict</code> endpoint.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>6. Dual-Model Prediction</strong>
+            <span>
+              Gradient Boosting returns a traffic class and confidence, while
+              Isolation Forest returns an anomaly signal and anomaly score.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>7. Azure Returns Results</strong>
+            <span>
+              The Azure API sends both model outputs back to the Cloudflare
+              Worker.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>8. Worker Decision Engine</strong>
+            <span>
+              The Worker combines model predictions, anomaly signals, and
+              rule-based indicators to calculate the final risk score, risk
+              level, and recommended action.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>9. Cloudflare D1 Storage</strong>
+            <span>
+              D1 stores the minimized telemetry, model outputs, risk assessment,
+              and recommendation for each processed event.
+            </span>
+          </div>
+
+          <div class="flow-step">
+            <strong>10. Streamlit Dashboard</strong>
+            <span>
+              The dashboard presents traffic classifications, anomaly results,
+              risk levels, recommendations, and evaluation evidence.
+            </span>
+          </div>
         </div>
 
         <div class="pill-row">
-          <span class="pill">Worker connected to Azure /predict</span>
-          <span class="pill">End-to-end latency measured</span>
+          <span class="pill">Privacy-safe telemetry collection</span>
+          <span class="pill">Worker ↔ Azure prediction round trip</span>
+          <span class="pill">Dual-model detection</span>
+          <span class="pill">Rule-based decision engine</span>
           <span class="pill">Cloudflare D1 event storage</span>
           <span class="pill">Streamlit reporting dashboard</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section light">
+      <div class="container">
+        <h2>Worker and Azure Communication</h2>
+
+        <p class="section-lead">
+          The Worker and Azure API communicate in both directions. The Worker
+          sends the feature vector for prediction, and Azure returns the
+          supervised and unsupervised model results.
+        </p>
+
+        <div class="grid-2">
+          <div class="card include">
+            <h3>Worker to Azure</h3>
+            <ul>
+              <li>Validated feature vector</li>
+              <li>Approved 14-feature model schema</li>
+              <li>No raw IP address</li>
+              <li>No exact location</li>
+              <li>No persistent browser identifier</li>
+            </ul>
+          </div>
+
+          <div class="card include">
+            <h3>Azure to Worker</h3>
+            <ul>
+              <li>Gradient Boosting traffic class</li>
+              <li>Supervised prediction confidence</li>
+              <li>Isolation Forest anomaly result</li>
+              <li>Isolation score</li>
+              <li>Model metadata used by the decision engine</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
@@ -71,21 +205,103 @@
     <section class="section">
       <div class="container">
         <h2>Pipeline Steps and System Ownership</h2>
+
         <table>
           <thead>
             <tr>
               <th>Stage</th>
               <th>Owner</th>
+              <th>Main Responsibility</th>
               <th>Output</th>
             </tr>
           </thead>
+
           <tbody>
-            <tr><td><strong>Collect</strong></td><td>Static website + beacon.js</td><td>Minimized telemetry event</td></tr>
-            <tr><td><strong>Intake</strong></td><td>Cloudflare Worker</td><td>Accepted event payload</td></tr>
-            <tr><td><strong>Validate</strong></td><td>Cloudflare Worker privacy logic</td><td>Approved non-sensitive fields</td></tr>
-            <tr><td><strong>Extract</strong></td><td>Feature extraction pipeline</td><td>ML-ready feature vector</td></tr>
-            <tr><td><strong>Detect</strong></td><td>Cloudflare Worker Rules + Azure App Service ML API</td><td>Classification + risk score</td></tr>
-            <tr><td><strong>Report</strong></td><td>Cloudflare D1 + Streamlit Dashboard</td><td>Stored summary + dashboard evidence</td></tr>
+            <tr>
+              <td><strong>Collect</strong></td>
+              <td>Static website + <code>beacon.js</code></td>
+              <td>Collect approved browser and interaction signals.</td>
+              <td>Minimized telemetry event</td>
+            </tr>
+
+            <tr>
+              <td><strong>Intake</strong></td>
+              <td>Cloudflare Worker</td>
+              <td>Receive the public telemetry request.</td>
+              <td>Accepted event payload</td>
+            </tr>
+
+            <tr>
+              <td><strong>Validate</strong></td>
+              <td>Cloudflare Worker privacy logic</td>
+              <td>
+                Reject or remove unapproved fields and enforce the minimized
+                telemetry schema.
+              </td>
+              <td>Privacy-validated event</td>
+            </tr>
+
+            <tr>
+              <td><strong>Extract</strong></td>
+              <td>Cloudflare Worker feature logic</td>
+              <td>
+                Transform the validated event into the required model feature
+                order.
+              </td>
+              <td>ML-ready feature vector</td>
+            </tr>
+
+            <tr>
+              <td><strong>Evaluate Rules</strong></td>
+              <td>Cloudflare Worker</td>
+              <td>
+                Identify obvious suspicious patterns using deterministic rules.
+              </td>
+              <td>Rule-based indicators</td>
+            </tr>
+
+            <tr>
+              <td><strong>Predict</strong></td>
+              <td>Azure App Service Flask ML API</td>
+              <td>
+                Run Gradient Boosting and Isolation Forest on the submitted
+                feature vector.
+              </td>
+              <td>
+                Traffic class, confidence, anomaly result, and anomaly score
+              </td>
+            </tr>
+
+            <tr>
+              <td><strong>Decide</strong></td>
+              <td>Cloudflare Worker decision engine</td>
+              <td>
+                Combine rule indicators and model outputs into a final risk
+                assessment.
+              </td>
+              <td>
+                Risk score, risk level, and recommended action
+              </td>
+            </tr>
+
+            <tr>
+              <td><strong>Store</strong></td>
+              <td>Cloudflare D1</td>
+              <td>
+                Store the processed event and complete detection assessment.
+              </td>
+              <td>Persistent telemetry record</td>
+            </tr>
+
+            <tr>
+              <td><strong>Report</strong></td>
+              <td>Streamlit Dashboard</td>
+              <td>
+                Display classifications, anomalies, risk levels, and model
+                evaluation evidence.
+              </td>
+              <td>Dashboard analytics and reports</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -94,36 +310,56 @@
     <section class="section">
       <div class="container">
         <h2>Detection Methods</h2>
+
         <p class="section-lead">
-          The prototype uses a rule baseline plus two trained model files: an unsupervised Isolation Forest model and a supervised Gradient Boosting model.
+          The prototype combines deterministic Worker rules with two trained
+          machine-learning models. Each method contributes a different signal
+          to the final decision.
         </p>
 
         <table>
           <thead>
             <tr>
               <th>Method</th>
-              <th>Learning type</th>
+              <th>Learning Type</th>
               <th>Purpose</th>
-              <th>Model file</th>
+              <th>Output</th>
+              <th>Implementation</th>
             </tr>
           </thead>
+
           <tbody>
             <tr>
-              <td><strong>Rule-based detector</strong></td>
-              <td>Rules</td>
-              <td>Flags obvious suspicious patterns such as rapid requests, suspicious paths, high error rates, and scanner-like activity.</td>
+              <td><strong>Rule-Based Detector</strong></td>
+              <td>Deterministic rules</td>
+              <td>
+                Identifies clear suspicious patterns, including rapid requests,
+                suspicious page categories, high error behaviour, and
+                scanner-like activity.
+              </td>
+              <td>Rule indicators and score contribution</td>
               <td>Cloudflare Worker logic</td>
             </tr>
+
             <tr>
               <td><strong>Isolation Forest</strong></td>
               <td>Unsupervised anomaly detection</td>
-              <td>Identifies traffic patterns that differ from normal behaviour.</td>
+              <td>
+                Determines whether an event differs from the normal benign
+                traffic patterns used during training.
+              </td>
+              <td>Normal or anomalous signal plus anomaly score</td>
               <td><code>isolation_forest_model.pkl</code></td>
             </tr>
+
             <tr>
               <td><strong>Gradient Boosting</strong></td>
-              <td>Supervised classification</td>
-              <td>Classifies events using labelled synthetic telemetry examples.</td>
+              <td>Supervised multi-class classification</td>
+              <td>
+                Classifies telemetry as human, good bot, bad bot, or scanner
+                using labelled synthetic training examples.
+              </td>
+              <td>Traffic class plus prediction confidence</td>
               <td><code>gradient_boosting_model.pkl</code></td>
             </tr>
           </tbody>
@@ -133,29 +369,131 @@
 
     <section class="section light">
       <div class="container">
+        <h2>Decision Engine</h2>
+
+        <p class="section-lead">
+          The system does not automatically block visitors. It produces an
+          advisory risk assessment and recommended action for dashboard review.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Example Condition</th>
+              <th>Risk Level</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>
+                Gradient Boosting predicts human traffic, Isolation Forest
+                reports normal behaviour, and no strong rule indicators are
+                present.
+              </td>
+              <td><strong>Low</strong></td>
+              <td>Allow</td>
+            </tr>
+
+            <tr>
+              <td>
+                The models disagree, confidence is limited, or some suspicious
+                rule indicators are present.
+              </td>
+              <td><strong>Medium</strong></td>
+              <td>Monitor</td>
+            </tr>
+
+            <tr>
+              <td>
+                Gradient Boosting predicts bad bot or scanner activity, the
+                event is anomalous, or multiple strong suspicious indicators
+                are present.
+              </td>
+              <td><strong>High</strong></td>
+              <td>Flag for review</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="section-lead">
+          These examples summarize the decision logic conceptually. The final
+          score and recommendation are generated consistently by the Worker
+          using the implemented rule thresholds and returned model outputs.
+        </p>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Stored Event Record</h2>
+
+        <p class="section-lead">
+          After the decision engine completes its assessment, the Worker stores
+          the complete result in Cloudflare D1 for later analysis.
+        </p>
+
+        <div class="grid-2">
+          <div class="card include">
+            <h3>Stored Telemetry</h3>
+            <ul>
+              <li>Approved minimized feature values</li>
+              <li>Page and interaction categories</li>
+              <li>Request and session behaviour</li>
+              <li>Coarse user-agent and TLS-derived properties</li>
+              <li>Event timestamp and processing metadata</li>
+            </ul>
+          </div>
+
+          <div class="card include">
+            <h3>Stored Detection Results</h3>
+            <ul>
+              <li>Gradient Boosting prediction</li>
+              <li>Prediction confidence</li>
+              <li>Isolation Forest result</li>
+              <li>Isolation score</li>
+              <li>Final risk score</li>
+              <li>Final risk level</li>
+              <li>Recommended action</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section light">
+      <div class="container">
         <h2>Project Boundaries</h2>
+
         <div class="grid-2">
           <div class="card include">
             <h3>In Scope</h3>
             <ul>
-              <li>Professional static website + beacon</li>
-              <li>Cloudflare Worker intake endpoint</li>
-              <li>Privacy validation + minimized telemetry schema</li>
-              <li>Synthetic dataset + feature engineering pipeline</li>
-              <li>Rule-based detector + Isolation Forest + Gradient Boosting</li>
-              <li>Cloudflare D1 storage + Streamlit Dashboard + evaluation report</li>
+              <li>Professional static website and JavaScript beacon</li>
+              <li>Cloudflare Worker telemetry intake endpoint</li>
+              <li>Privacy validation and minimized telemetry schema</li>
+              <li>Synthetic dataset and feature-engineering pipeline</li>
+              <li>Rule-based detector</li>
+              <li>Isolation Forest anomaly detection</li>
+              <li>Gradient Boosting traffic classification</li>
+              <li>Azure-hosted Flask prediction API</li>
+              <li>Cloudflare D1 storage</li>
+              <li>Streamlit Dashboard and evaluation reporting</li>
             </ul>
           </div>
 
           <div class="card exclude">
             <h3>Out of Scope</h3>
             <ul>
-              <li>Real sponsor production data</li>
+              <li>Real sponsor production traffic or personal data</li>
               <li>Production-grade blocking or CAPTCHA enforcement</li>
-              <li>Rate limiting or active mitigation</li>
-              <li>Third-party attacks or adversarial testing</li>
-              <li>Invasive tracking or browser fingerprinting</li>
-              <li>Commercial-ready security product</li>
+              <li>Automated rate limiting or active mitigation</li>
+              <li>Third-party attacks or adversarial penetration testing</li>
+              <li>Invasive behavioural tracking</li>
+              <li>Persistent browser fingerprinting</li>
+              <li>Formal end-to-end latency benchmarking</li>
+              <li>Commercial-ready security product deployment</li>
             </ul>
           </div>
         </div>
@@ -165,7 +503,9 @@
 
   <footer class="site-footer">
     <div class="container">
-      <p>Salience Enterprises Inc. capstone implementation · Pipeline architecture</p>
+      <p>
+        Salience Enterprises Inc. capstone implementation · Pipeline architecture
+      </p>
     </div>
   </footer>
 </body>
