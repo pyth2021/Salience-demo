@@ -16,7 +16,7 @@
       </div>
 
       <div class="nav-links">
-        <a href="index.html">Overview</a>
+        <a class="active" href="index.html">Overview</a>
         <a href="pipeline.html">Pipeline</a>
         <a href="live-stats.html">Live Stats</a>
       </div>
@@ -27,25 +27,40 @@
     <section class="hero">
       <div class="container hero-grid">
         <div>
-          <p class="eyebrow">Cybersecurity and Artificial Intelligence Capstone Project</p>
-          <h1>Privacy-Preserving Bot & Anomaly Detection for Static-Site Telemetry</h1>
+          <p class="eyebrow">
+            Cybersecurity and Artificial Intelligence Capstone Project
+          </p>
+
+          <h1>
+            Privacy-Preserving Bot &amp; Anomaly Detection for Static-Site Telemetry
+          </h1>
+
           <p class="hero-text">
-            A live prototype that detects suspicious traffic patterns from static-site telemetry
-            while minimizing personal data collection.
+            A deployed prototype that detects suspicious traffic patterns from
+            minimized static-site telemetry while avoiding unnecessary personal
+            data collection.
           </p>
 
           <div class="hero-actions">
-            <a class="button primary" href="pipeline.html">View Pipeline</a>
-            <a class="button secondary" href="live-stats.html">View Live Stats</a>
+            <a class="button primary" href="pipeline.html">
+              View Pipeline
+            </a>
+
+            <a class="button secondary" href="live-stats.html">
+              View Live Stats
+            </a>
           </div>
         </div>
 
         <div class="hero-card">
           <h3>Live Prototype Focus</h3>
+
           <ul>
             <li>Cloudflare Pages static website</li>
-            <li>Cloudflare Worker telemetry intake</li>
-            <li>Azure ML API prediction endpoint</li>
+            <li>JavaScript beacon for minimized telemetry</li>
+            <li>Cloudflare Worker intake and risk logic</li>
+            <li>Azure-hosted Flask ML prediction API</li>
+            <li>Gradient Boosting and Isolation Forest models</li>
             <li>Cloudflare D1 event storage</li>
             <li>Streamlit dashboard reporting</li>
           </ul>
@@ -56,35 +71,44 @@
     <section class="section">
       <div class="container">
         <h2>Project Overview</h2>
+
         <p class="section-subtitle">
-          This prototype demonstrates a privacy-aware detection pipeline for identifying
-          human traffic, good bots, bad bots, and scanner-like activity.
+          This prototype demonstrates a privacy-aware detection pipeline for
+          identifying human traffic, good bots, bad bots, scanner-like activity,
+          and anomalous events.
         </p>
 
         <div class="cards-grid three-column">
           <div class="card">
             <h3>Problem</h3>
+
             <p>
-              Static websites often use lightweight JavaScript beacons for analytics.
-              Because these endpoints are public, they can receive bot traffic, scrapers,
-              scanners, and inflated-metric activity.
+              Static websites often use lightweight JavaScript beacons for
+              analytics. Because these endpoints are public, they may receive
+              automated traffic, scrapers, scanners, malicious bots, and activity
+              that can distort telemetry.
             </p>
           </div>
 
           <div class="card">
             <h3>Solution</h3>
+
             <p>
-              The system places a privacy-first detection layer between the website beacon
-              and backend storage. Events are validated, transformed, scored, and reported.
+              The system places a privacy-preserving detection layer between the
+              website beacon and backend storage. Events are validated by the
+              Worker, scored by two machine-learning models, assigned a risk
+              assessment, stored in D1, and displayed in the dashboard.
             </p>
           </div>
 
           <div class="card">
             <h3>Privacy Approach</h3>
+
             <p>
-              The prototype uses minimized telemetry and avoids collecting raw IP addresses,
-              passwords, cookies, authentication tokens, private content, and invasive
-              browser fingerprinting.
+              The prototype uses a minimized 14-feature telemetry schema and
+              avoids collecting raw IP addresses, passwords, cookies,
+              authentication tokens, private content, exact location, names,
+              emails, or invasive browser fingerprinting.
             </p>
           </div>
         </div>
@@ -94,32 +118,59 @@
     <section class="section light">
       <div class="container">
         <h2>Team and Project Context</h2>
+
         <p class="section-subtitle">
-          Live prototype implementation for the Cybersecurity and Artificial Intelligence capstone project.
+          Live prototype implementation for the Cybersecurity and Artificial
+          Intelligence capstone project.
         </p>
 
         <div class="cards-grid two-column">
           <div class="card">
             <h3>Capstone Team</h3>
-            
-              <p>Mahin Chowdhury</p>
-              <p>Naveen Saranya Patro Behara</p>
-              <p>Olamide Akinyosola</p>
-              <p>Suma Madasu</p>
-            
+
+            <p>Mahin Chowdhury</p>
+            <p>Naveen Saranya Patro Behara</p>
+            <p>Olamide Akinyosola</p>
+            <p>Suma Madasu</p>
           </div>
 
           <div class="card">
             <h3>Project Context</h3>
-        
-              <p><strong>Institution:</strong> Humber Polytechnic, Ontario, Canada</p>
-              <p><strong>Faculty:</strong> Faculty of Applied Sciences &amp; Technology</p>
-              <p><strong>Program:</strong> Cybersecurity and Artificial Intelligence</p>
-              <p><strong>Project Sponsor:</strong> Salience Enterprises Inc.</p>
-              <p><strong>Industry Supervisor:</strong> Abdullah Ali Syed</p>
-              <p><strong>Course Instructor:</strong> Asama Nseaf</p>
-              <p><strong>Project Phase:</strong> Live Prototype Implementation</p>
-            
+
+            <p>
+              <strong>Institution:</strong>
+              Humber Polytechnic, Ontario, Canada
+            </p>
+
+            <p>
+              <strong>Faculty:</strong>
+              Faculty of Applied Sciences &amp; Technology
+            </p>
+
+            <p>
+              <strong>Program:</strong>
+              Cybersecurity and Artificial Intelligence
+            </p>
+
+            <p>
+              <strong>Project Sponsor:</strong>
+              Salience Enterprises Inc.
+            </p>
+
+            <p>
+              <strong>Industry Supervisor:</strong>
+              Abdullah Ali Syed
+            </p>
+
+            <p>
+              <strong>Course Instructor:</strong>
+              Asama Nseaf
+            </p>
+
+            <p>
+              <strong>Project Phase:</strong>
+              Live Prototype Implementation
+            </p>
           </div>
         </div>
       </div>
@@ -128,15 +179,22 @@
     <section class="section">
       <div class="container">
         <h2>Live Project Links</h2>
+
         <p class="section-subtitle">
-          Public links used for the deployed prototype and project handover.
+          Public links used for the deployed prototype, dashboard access, and
+          project handover.
         </p>
 
         <div class="cards-grid two-column">
           <div class="card">
             <h3>Live Website</h3>
+
             <p>
-              <a href="https://salience-demo.pages.dev" target="_blank">
+              <a
+                href="https://salience-demo.pages.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 https://salience-demo.pages.dev
               </a>
             </p>
@@ -144,8 +202,13 @@
 
           <div class="card">
             <h3>Worker Events API</h3>
+
             <p>
-              <a href="https://salience-beacon-worker.mahin0710.workers.dev/events" target="_blank">
+              <a
+                href="https://salience-beacon-worker.mahin0710.workers.dev/events"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Cloudflare Worker Events API
               </a>
             </p>
@@ -153,8 +216,13 @@
 
           <div class="card">
             <h3>Streamlit Dashboard</h3>
+
             <p>
-              <a href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/" target="_blank">
+              <a
+                href="https://salience-demo-we5wxbfsagmuuzj3vyjvog.streamlit.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Open Dashboard
               </a>
             </p>
@@ -162,8 +230,13 @@
 
           <div class="card">
             <h3>GitHub Repository</h3>
+
             <p>
-              <a href="https://github.com/pyth2021/Salience-demo" target="_blank">
+              <a
+                href="https://github.com/pyth2021/Salience-demo"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 https://github.com/pyth2021/Salience-demo
               </a>
             </p>
@@ -176,22 +249,32 @@
       <div class="container">
         <h2>Privacy-Preserving Telemetry</h2>
 
+        <p class="section-subtitle">
+          Only approved categorical, behavioural, request, and coarse connection
+          features are submitted for prediction.
+        </p>
+
         <div class="cards-grid two-column">
           <div class="card">
             <h3>Examples of Included Signals</h3>
+
             <ul>
-              <li>Page path</li>
-              <li>Page view event</li>
+              <li>Page category</li>
               <li>Interaction type</li>
-              <li>Pages per session</li>
-              <li>Request timing</li>
-              <li>Error flag or error rate</li>
+              <li>Scroll-depth category</li>
+              <li>Request interval</li>
               <li>General user-agent category</li>
+              <li>Favicon-request indicator</li>
+              <li>robots.txt-request indicator</li>
+              <li>Pages per session</li>
+              <li>Error rate</li>
+              <li>Coarse TLS and connection properties</li>
             </ul>
           </div>
 
           <div class="card">
             <h3>Data Not Collected</h3>
+
             <ul>
               <li>Raw IP addresses</li>
               <li>Names or emails</li>
@@ -200,8 +283,50 @@
               <li>Authentication tokens</li>
               <li>Private page content</li>
               <li>Exact location</li>
+              <li>Persistent personal identifiers</li>
               <li>Invasive browser fingerprinting</li>
             </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2>Detection and Risk Assessment</h2>
+
+        <p class="section-subtitle">
+          The prototype combines supervised classification, unsupervised anomaly
+          detection, and deterministic Worker risk logic.
+        </p>
+
+        <div class="cards-grid three-column">
+          <div class="card">
+            <h3>Gradient Boosting</h3>
+
+            <p>
+              Classifies each telemetry event as human, good bot, bad bot, or
+              scanner and returns prediction confidence and class probabilities.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Isolation Forest</h3>
+
+            <p>
+              Evaluates whether the event differs from expected benign behaviour
+              and returns a normal or anomalous result with a decision score.
+            </p>
+          </div>
+
+          <div class="card">
+            <h3>Worker Risk Logic</h3>
+
+            <p>
+              Combines the supervised prediction, confidence, and anomaly result
+              to assign a final risk score, risk level, and advisory action such
+              as allow, allow with monitoring, monitor, or flag for review.
+            </p>
           </div>
         </div>
       </div>
@@ -211,8 +336,8 @@
   <footer class="site-footer">
     <div class="container">
       <p>
-        Group 3 | Humber Polytechnic | Faculty of Applied Sciences &amp; Technology |
-        Cybersecurity and Artificial Intelligence
+        Group 3 | Humber Polytechnic | Faculty of Applied Sciences &amp;
+        Technology | Cybersecurity and Artificial Intelligence
       </p>
     </div>
   </footer>
